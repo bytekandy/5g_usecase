@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EDGE-CTL // 5G MEC Closed-Loop SLA & GenAI Operations Center</title>
+  <style>
+    :root {
+      /* Pure Linux TTY Pitch-Black & High-Contrast Monochrome Hierarchy */
+      --bg-base: #000000;
+      --bg-panel: #000000;
+      --bg-elevated: #0a0a0c;
+      --bg-input: #000000;
+      --border-dim: #28282e;
+      --border-bright: #484852;
+      --text-main: #ffffff;
+      --text-muted: #a0a0ab;
+      --text-dim: #62626d;
+
+      /* Crisp Classic TTY ANSI Colors */
+      --cyan: #00ffff;
+      --cyan-dim: rgba(0, 255, 255, 0.12);
+      --green: #00ff66;
+      --green-dim: rgba(0, 255, 102, 0.12);
+      --amber: #ffcc00;
+      --amber-dim: rgba(255, 204, 0, 0.12);
+      --red: #ff3333;
+      --red-dim: rgba(255, 51, 51, 0.14);
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.28;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #000000; }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+    .app-shell {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      height: 100vh;
+      width: 100vw;
+      padding: 4px;
+      gap: 4px;
+      background: #000000;
+    }
+
+    /* Top TTY Bars */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      padding: 3.5px 8px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .bar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .brand-tag {
+      background: #ffffff;
+      color: #000000;
+      font-weight: 900;
+      padding: 1px 6px;
+      letter-spacing: 0.5px;
+      font-size: 10.5px;
+    }
+
+    .brand-title {
+      font-weight: 800;
+      color: #ffffff;
+      font-size: 11.5px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 6px;
+      border: 1px solid var(--border-dim);
+      background: #050507;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.cyan { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+    .pill.green { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+    .pill.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+    .pill.red { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1.5px 7px;
+      border: 1px solid var(--border-bright);
+      background: #08080a;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover { border-color: #ffffff; background: #18181d; }
+    .btn:active { transform: translateY(1px); }
+    .btn.btn-green { border-color: var(--green); color: var(--green); }
+    .btn.btn-green:hover { background: var(--green-dim); }
+    .btn.btn-red { border-color: var(--red); color: var(--red); }
+    .btn.btn-red:hover { background: var(--red-dim); }
+    .btn.btn-cyan { border-color: var(--cyan); color: var(--cyan); }
+    .btn.btn-cyan:hover { background: var(--cyan-dim); }
+
+    .kbd {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 9.5px;
+    }
+
+    .ws-input {
+      background: #000000;
+      border: 1px solid var(--border-bright);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1.5px 6px;
+      width: 225px;
+      outline: none;
+    }
+    .ws-input:focus { border-color: var(--cyan); }
+
+    /* Main Workspace Grid: Tall Upper Half (61%) + Compact Lower Half (39%) */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: minmax(0, 61%) minmax(0, 39%);
+      gap: 4px;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      height: 23px;
+      padding: 0 7px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-dim);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      font-size: 10.5px;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .panel-idx {
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 9.5px;
+      padding: 0 3.5px;
+      border: 1px solid var(--border-bright);
+      background: #000000;
+    }
+
+    .panel-sub {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 9.5px;
+    }
+
+    .panel-body {
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      gap: 4px;
+      justify-content: flex-start;
+    }
+
+    /* Grid Placements:
+       Row 1 (Tall 61%): Panel 1 (Oscilloscope, span 8) + Panel 2 (Konsole & Audit, span 4)
+       Row 2 (Compact 39%): Panel 3 (Netem, span 2) + Panel 4 (Pipeline, span 2) + Panel 5 (GenAI, span 5) + Panel 6 (Node Info, span 3)
+    */
+    #panel1 { grid-column: span 8; }
+    #panelKonsole { grid-column: span 4; }
+    #panel3 { grid-column: span 2; }
+    #panel4 { grid-column: span 2; }
+    #panel5 { grid-column: span 5; }
+    #panelNode { grid-column: span 3; }
+
+    /* Panel 1: RTT Horizon + Radio PHY */
+    .p1-split {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 5px;
+      flex: 1 1 0%;
+      min-height: 0;
+    }
+
+    .chart-box {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      display: flex;
+      flex-direction: column;
+      padding: 5px 7px;
+      min-height: 0;
+    }
+
+    .chart-top-row, .chart-bot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      font-size: 10px;
+    }
+
+    .canvas-wrap {
+      flex: 1 1 0%;
+      min-height: 0;
+      width: 100%;
+      position: relative;
+      margin: 3px 0;
+    }
+
+    #rttCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .phy-box {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 6px 7px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 4px;
+      font-size: 10px;
+      overflow-y: auto;
+    }
+
+    .kv-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+      border-bottom: 1px dashed #1c1c22;
+    }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-label { color: var(--text-muted); }
+    .kv-val { font-weight: 700; color: #ffffff; }
+
+    /* Compact Metric Blocks */
+    .metric-block {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 3.5px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5px;
+      flex-shrink: 0;
+    }
+
+    .metric-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 4px;
+      background: #141418;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.14s ease, background-color 0.14s ease;
+    }
+
+    .node-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px 6px;
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 3.5px 6px;
+      font-size: 9px;
+      flex-shrink: 0;
+    }
+
+    /* Panel 3: Vertically Stacked 4-Button Netem Column (span 2) */
+    .netem-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 0 0 auto;
+    }
+
+    .netem-row-btn {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      text-align: left;
+      width: 100%;
+    }
+
+    .netem-row-btn:hover { border-color: #ffffff; background: #0c0c10; }
+    .netem-row-btn.active-1 { border-color: var(--green); background: var(--green-dim); }
+    .netem-row-btn.active-2 { border-color: var(--amber); background: var(--amber-dim); }
+    .netem-row-btn.active-3, .netem-row-btn.active-4 { border-color: var(--red); background: var(--red-dim); }
+
+    .tc-cmd-box {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 3px 6px;
+      font-size: 9px;
+      color: var(--green);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+
+    /* Panel 5: GenAI Synthesizer */
+    .genai-box {
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 5px 7px;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      gap: 4px;
+    }
+
+    .genai-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-dim);
+      padding-bottom: 3.5px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .genai-content {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3.5px;
+      font-size: 10.5px;
+      line-height: 1.36;
+      color: #ffffff;
+    }
+
+    .diag-line {
+      background: #050507;
+      border: 1px solid #18181e;
+      border-left: 2px solid var(--cyan);
+      padding: 3.5px 6px;
+    }
+    .diag-line:nth-child(2) { border-left-color: var(--amber); }
+    .diag-line:nth-child(3) { border-left-color: var(--green); }
+
+    .hist-btn {
+      background: #08080a;
+      border: 1px solid var(--border-bright);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 0px 4px;
+      cursor: pointer;
+      line-height: 1.2;
+    }
+    .hist-btn:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+    .hist-btn:disabled { opacity: 0.25; cursor: default; }
+
+    .model-select {
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid var(--border-bright);
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 4px;
+      outline: none;
+      cursor: pointer;
+    }
+    .model-select:focus { border-color: var(--cyan); }
+
+    /* Panel 2 (Upper Right): Audit Log & Full-Height Interactive Konsole */
+    .tab-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3px;
+      background: #050507;
+      border-bottom: 1px solid var(--border-dim);
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: #ffffff; }
+    .tab-btn.active {
+      background: #000000;
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .konsole-pane {
+      display: none;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      background: #000000;
+    }
+    .konsole-pane.active {
+      display: flex;
+    }
+
+    .log-list {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 4px 6px;
+      font-size: 9.5px;
+    }
+
+    .log-row {
+      display: grid;
+      grid-template-columns: 48px 64px 86px 1fr;
+      gap: 5px;
+      padding: 2.5px 0;
+      border-bottom: 1px solid #141418;
+      align-items: baseline;
+    }
+
+    .term-scroll {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 7px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      line-height: 1.38;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #ffffff;
+      background: #000000;
+    }
+
+    .quick-tc-bar {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-wrap: wrap;
+      padding: 3px 6px;
+      background: #060608;
+      border-top: 1px solid var(--border-dim);
+      flex-shrink: 0;
+    }
+
+    .q-btn {
+      background: #000000;
+      border: 1px solid var(--border-bright);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1.5px 5px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .q-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .q-btn.green { color: var(--green); }
+    .q-btn.amber { color: var(--amber); }
+    .q-btn.red { color: var(--red); }
+
+    .ssh-login-card {
+      margin: 10px;
+      padding: 10px;
+      border: 1px solid var(--border-bright);
+      background: #050507;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ssh-prompt-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 7px;
+      background: #040406;
+      border-top: 1px solid var(--border-dim);
+      flex-shrink: 0;
+    }
+
+    .ssh-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      outline: none;
+    }
+
+    /* Fullscreen Modal State for Konsole Panel */
+    #panelKonsole.fullscreen-modal {
+      position: fixed !important;
+      inset: 4px !important;
+      z-index: 9999 !important;
+      border: 1px solid var(--cyan) !important;
+      box-shadow: 0 0 50px #000000;
+    }
+
+    /* Footer */
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #000000;
+      border: 1px solid var(--border-dim);
+      padding: 2.5px 8px;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 1200px) {
+      html, body { height: auto; overflow-y: auto; }
+      .app-shell { height: auto; }
+      .workspace-grid { display: flex; flex-direction: column; }
+      .p1-split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- ROW 1: PRIMARY COMMAND HEADER -->
+    <header class="top-bar">
+      <div class="bar-group">
+        <span class="brand-tag">EDGE-CTL</span>
+        <span class="brand-title">5G MEC Closed-Loop SLA &amp; GenAI Operations Center</span>
+        <span id="slicePill" class="pill green">SLICE: eMBB-HIGH [60Hz / FP32-RAW / 5QI-9]</span>
+        <button id="autoQosBtn" class="btn btn-green" onclick="toggleAutoQos()">
+          <span class="kbd">[c]</span>
+          <span>Auto-QoS:</span>
+          <strong id="autoQosText">ON (ACTIVE)</strong>
+        </button>
+        <span id="dataSourcePill" class="pill cyan">SOURCE: MEC SERVER VM</span>
+      </div>
+
+      <div class="bar-group">
+        <span class="pill">IFACE: <strong style="color:var(--cyan)">upf0 (N3)</strong></span>
+        <span class="pill">SLA: <strong style="color:var(--red)">30.0 ms</strong></span>
+        <span class="pill">COMPLIANCE: <strong id="complianceText" style="color:var(--green)">100.0%</strong></span>
+        <button class="btn btn-red" onclick="switchPanel6Tab('ssh')">
+          <span class="kbd">[k]</span> &gt;_ konsole
+        </button>
+        <button class="btn" style="border-color:var(--amber);color:var(--amber);" onclick="openTuiDocs('ALL')">
+          <span class="kbd">[d]</span> ? TUI Docs
+        </button>
+        <button class="btn btn-cyan" onclick="requestGenAiReportManual()">
+          <span class="kbd">[g]</span> Run GenAI Report
+        </button>
+        <span id="clockText" class="pill" style="color:#ffffff;">00:00:00</span>
+      </div>
+    </header>
+
+    <!-- ROW 2: WEBSOCKET & SHORTCUT RIBBON -->
+    <div class="top-bar" style="padding: 2px 8px;">
+      <div class="bar-group">
+        <span style="color:var(--text-muted);font-weight:700;font-size:10px;">BACKEND WS:</span>
+        <input id="wsUrlInput" class="ws-input" type="text" value="" />
+        <button class="btn" onclick="connectAllWebSockets()">Reconnect</button>
+        <span id="wsStatusPill" class="pill amber">● CONNECTING...</span>
+      </div>
+      <div class="bar-group" style="color:var(--text-muted);font-size:9.5px;">
+        <span>UE Sensor URL: <a id="phoneLinkAnchor" href="/phone" target="_blank" style="color:var(--cyan);font-weight:700;text-decoration:none;">/phone</a></span>
+        <span>|</span>
+        <span>KEYS: <strong style="color:#ffffff">[1-4]</strong> Impairments</span>
+        <span><strong style="color:var(--cyan)">[k]</strong> Konsole</span>
+        <span><strong style="color:var(--green)">[f]</strong> Fullscreen</span>
+        <span><strong style="color:var(--red)">[s]</strong> Shake UE</span>
+        <span><strong style="color:var(--cyan)">[g]</strong> AI Report</span>
+        <span><strong style="color:var(--amber)">[d]</strong> Docs</span>
+      </div>
+    </div>
+
+    <!-- ROW 3: MAIN 6-PANEL WORKSPACE -->
+    <main class="workspace-grid">
+      <!-- PANEL 01 (UPPER LEFT, SPAN 8): 5G N3 UPLINK RTT HORIZON & RADIO PHY -->
+      <section id="panel1" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">01</span>
+            <span>ul_telemetry_link</span>
+            <span class="panel-sub">— 5G N3 Uplink RTT &amp; Jitter Horizon (172.16.0.5 / 100.73.187.15)</span>
+          </div>
+          <span id="pollRateBadge" style="color:var(--text-muted);font-size:9.5px;">poll: 16ms (60Hz)</span>
+        </div>
+        <div class="panel-body">
+          <div class="p1-split">
+            <div class="chart-box">
+              <div class="chart-top-row">
+                <div>
+                  <span style="color:var(--cyan)">■</span>
+                  <strong>UL_RTT (T_UL):</strong>
+                  <span id="rttMainVal" style="font-size:13px;font-weight:900;color:var(--cyan);margin-left:4px;">11.0 ms</span>
+                  <span style="color:var(--text-muted);margin-left:6px;">(peak: <strong id="rttPeakVal" style="color:var(--red)">14.2 ms</strong>)</span>
+                </div>
+                <div style="color:var(--red);font-weight:700;">— URLLC SLA 30.0ms</div>
+              </div>
+              <div class="canvas-wrap">
+                <canvas id="rttCanvas"></canvas>
+              </div>
+              <div class="chart-bot-row">
+                <div class="bar-group" style="gap:12px;">
+                  <span>JITTER: <strong id="jitterVal" style="color:#ffffff">1.0 ms</strong></span>
+                  <span>MEC_Infer: <strong id="inferVal" style="color:var(--green)">1.4 ms</strong></span>
+                </div>
+                <div id="slaStateBadge" style="color:var(--green);font-weight:800;">● SLA: COMPLIANT (&lt;30ms)</div>
+              </div>
+            </div>
+
+            <div class="phy-box">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-dim);padding-bottom:3px;">
+                <strong style="color:var(--cyan)">gNB-N78-MEC01</strong>
+                <span id="qamBadge" style="color:var(--green);font-weight:700;">256-QAM</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">RSRP / SINR</span>
+                <span id="rsrpVal" class="kv-val">-76dBm / 26.4dB</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">NR Band / SCS</span>
+                <span class="kv-val" style="color:var(--text-muted)">n78 (3.5G) / 30kHz</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">Link Quality</span>
+                <span id="linkQualVal" class="kv-val" style="color:var(--green)">████████ 96%</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">Active 5QI</span>
+                <span id="active5qiVal" class="kv-val" style="color:var(--cyan)">5QI-9 (eMBB)</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">Packet Loss</span>
+                <span id="pktLossVal" class="kv-val" style="color:var(--green)">0.00 %</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">Codec Frame</span>
+                <span id="codecVal" class="kv-val">RAW_FP32 (1.42KB)</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">PRB Alloc</span>
+                <span id="prbVal" class="kv-val">48 / 106 PRBs</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">MIMO Layers</span>
+                <span class="kv-val" style="color:var(--text-muted)">4x4 UL-MIMO</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-label">HARQ Retx</span>
+                <span class="kv-val" style="color:var(--green)">0.0% (ACK)</span>
+              </div>
+              <div class="kv-row" style="margin-top:auto;border-top:1px solid var(--border-dim);padding-top:3px;">
+                <span class="kv-label">QoS Switches</span>
+                <strong id="qosSwitchCount" style="color:var(--amber)">0 switches</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 02 (UPPER RIGHT, SPAN 4): FULL-HEIGHT KONSOLE & QOS AUDIT LOG -->
+      <section id="panelKonsole" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">02</span>
+            <span id="p6TitleText">konsole_&_audit</span>
+            <span class="panel-sub">— Shell &amp; Audit Stream</span>
+          </div>
+          <div class="bar-group" style="gap:3px;">
+            <button class="btn" style="padding:1px 5px;font-size:9px;" onclick="refreshTcStats()">↻ tc -s</button>
+            <button id="sshLogoutBtn" class="btn btn-red" style="padding:1px 5px;font-size:9px;display:none;" onclick="logoutSsh()">Logout</button>
+            <button class="btn btn-cyan" style="padding:1px 5px;font-size:9px;" onclick="toggleFullscreenKonsole()">[f] Fullscreen</button>
+          </div>
+        </div>
+
+        <div class="tab-strip">
+          <div class="bar-group" style="gap:2px;">
+            <button id="tabBtnAudit" class="tab-btn active" onclick="switchPanel6Tab('audit')">0:audit_log</button>
+            <button id="tabBtnTraffic" class="tab-btn" onclick="switchPanel6Tab('traffic')">1:upf0_tc</button>
+            <button id="tabBtnSsh" class="tab-btn" onclick="switchPanel6Tab('ssh')">2:ssh (100.73.187.15)</button>
+          </div>
+          <button class="tab-btn" onclick="clearActivePane()" title="Clear Output">[clear]</button>
+        </div>
+
+        <!-- TAB 0: QOS AUDIT LOG -->
+        <div id="paneAudit" class="konsole-pane active">
+          <div id="auditLogList" class="log-list"></div>
+        </div>
+
+        <!-- TAB 1: UPF0 KERNEL TRAFFIC MONITOR -->
+        <div id="paneTraffic" class="konsole-pane">
+          <pre id="trafficTermOut" class="term-scroll">Connecting to MEC Kernel Traffic Monitor (upf0)...</pre>
+          <div class="quick-tc-bar">
+            <span style="color:var(--text-muted);font-size:9px;font-weight:700;">TC:</span>
+            <button class="q-btn" onclick="refreshTcStats()">tc -s qdisc</button>
+            <button class="q-btn green" onclick="selectImpairment(1)">[1] Clean</button>
+            <button class="q-btn amber" onclick="selectImpairment(2)">[2] +28ms</button>
+            <button class="q-btn red" onclick="selectImpairment(3)">[3] +56ms</button>
+            <button class="q-btn red" onclick="selectImpairment(4)">[4] 150kbit</button>
+          </div>
+        </div>
+
+        <!-- TAB 2: INTERACTIVE BASH SSH SHELL -->
+        <div id="paneSsh" class="konsole-pane">
+          <div id="sshAuthCard" class="ssh-login-card">
+            <div style="color:var(--cyan);font-weight:800;font-size:10.5px;">MEC SSH AUTH (user@100.73.187.15)</div>
+            <div style="color:var(--text-muted);font-size:9.5px;">Enter Ubuntu VM password to open interactive <strong>/bin/bash</strong> shell:</div>
+            <div style="display:flex;gap:5px;align-items:center;">
+              <input id="sshPassInput" type="password" placeholder="Ubuntu password..." class="ws-input" style="flex:1;" onkeydown="if(event.key==='Enter') submitSshLogin()" />
+              <button class="btn btn-green" onclick="submitSshLogin()">Login ↵</button>
+            </div>
+            <div id="sshAuthErr" style="color:var(--red);font-size:9.5px;display:none;"></div>
+          </div>
+
+          <pre id="sshTermOut" class="term-scroll" style="display:none;"></pre>
+
+          <div id="sshQuickBar" class="quick-tc-bar" style="display:none;">
+            <span style="color:var(--text-muted);font-size:9px;font-weight:700;">BASH:</span>
+            <button class="q-btn" onclick="execQuickBash('tc -s qdisc show dev upf0 && ip -s -br link show dev upf0', 0)">tc -s qdisc</button>
+            <button class="q-btn green" onclick="execQuickBash('sudo tc qdisc del dev upf0 root 2>/dev/null || true && tc -s qdisc show dev upf0', 1)">[1] Clean</button>
+            <button class="q-btn amber" onclick="execQuickBash('sudo tc qdisc replace dev upf0 root netem delay 28ms 9ms loss 0.8% && tc -s qdisc show dev upf0', 2)">[2] +28ms</button>
+            <button class="q-btn red" onclick="execQuickBash('sudo tc qdisc replace dev upf0 root netem delay 56ms 18ms loss 3.8% && tc -s qdisc show dev upf0', 3)">[3] +56ms</button>
+            <button class="q-btn red" onclick="execQuickBash('sudo tc qdisc replace dev upf0 root netem rate 150kbit delay 38ms 12ms && tc -s qdisc show dev upf0', 4)">[4] 150kbit</button>
+            <button class="q-btn" onclick="execQuickBash('ip -4 -br a', 0)">ip -4 -br a</button>
+            <button class="q-btn" onclick="execQuickBash('free -h && uptime', 0)">free -h</button>
+          </div>
+
+          <div id="sshPromptBar" class="ssh-prompt-row" style="display:none;">
+            <span id="sshPromptLabel" style="color:var(--green);font-weight:700;">user@user:/home/user/grp21_usecase$</span>
+            <input id="sshCmdInput" type="text" class="ssh-input" placeholder="Type bash command (Up/Down history, clear)..." autocomplete="off" />
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 03 (LOWER LEFT, SPAN 2): COMPACT VERTICAL 4-BUTTON NETEM STACK -->
+      <section id="panel3" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">03</span>
+            <span>netem_ctrl</span>
+          </div>
+          <span style="color:var(--amber);font-size:9px;font-weight:700;">[1-4] inject</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#000000;border:1px solid var(--border-dim);padding:3px 6px;flex-shrink:0;">
+            <span style="font-size:9px;color:var(--text-muted);font-weight:700;">AUTO-QOS (&gt;30ms)</span>
+            <button id="p3LoopBtn" class="btn btn-green" onclick="toggleAutoQos()" style="padding:1px 5px;font-size:9px;">[C] ON</button>
+          </div>
+
+          <!-- 4 Vertically Stacked Inline Buttons -->
+          <div class="netem-stack">
+            <button id="profBtn1" class="netem-row-btn active-1" onclick="selectImpairment(1)">
+              <span style="font-weight:700;font-size:9.5px;color:#ffffff;">[1] Clean 5G NR</span>
+              <span style="font-size:9px;color:var(--green);font-weight:700;">11ms | 0% ●</span>
+            </button>
+
+            <button id="profBtn2" class="netem-row-btn" onclick="selectImpairment(2)">
+              <span style="font-weight:700;font-size:9.5px;color:#ffffff;">[2] gNB Handover</span>
+              <span style="font-size:9px;color:var(--amber);font-weight:700;">+28ms ±9m ▲</span>
+            </button>
+
+            <button id="profBtn3" class="netem-row-btn" onclick="selectImpairment(3)">
+              <span style="font-weight:700;font-size:9.5px;color:#ffffff;">[3] mmWave Block</span>
+              <span style="font-size:9px;color:var(--red);font-weight:700;">+56ms 3.8% ■</span>
+            </button>
+
+            <button id="profBtn4" class="netem-row-btn" onclick="selectImpairment(4)">
+              <span style="font-weight:700;font-size:9.5px;color:#ffffff;">[4] PRB Congest</span>
+              <span style="font-size:9px;color:var(--red);font-weight:700;">150k +38m ◆</span>
+            </button>
+          </div>
+
+          <div class="tc-cmd-box" id="tcCmdPreview">$ sudo tc qdisc del dev upf0 root</div>
+
+          <div class="metric-block" style="gap:1.5px;">
+            <div class="kv-row"><span class="kv-label">qdisc</span><span class="kv-val" style="color:var(--cyan)">upf0 (N3)</span></div>
+            <div class="kv-row"><span class="kv-label">profile</span><span id="p3ProfText" class="kv-val" style="color:var(--green)">[1] Clean</span></div>
+            <div class="kv-row"><span class="kv-label">rate</span><span id="p3RateText" class="kv-val">60Hz FP32</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 04 (LOWER M-LEFT, SPAN 2): EDGE COMPUTE, THROUGHPUT & E2E TIMELINE -->
+      <section id="panel4" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">04</span>
+            <span>mec_pipeline</span>
+          </div>
+          <span id="cpuTotalBadge" style="color:var(--cyan);font-size:9.5px;font-weight:700;">CPU: 11%</span>
+        </div>
+        <div class="panel-body">
+          <div class="metric-block" style="gap:2.5px;">
+            <div class="metric-hdr"><span style="color:var(--text-muted)">C0 upf_rx</span><strong id="c0Val" style="color:var(--cyan)">13%</strong></div>
+            <div class="bar-track"><div id="c0Bar" class="bar-fill" style="width:13%;background:var(--cyan);"></div></div>
+
+            <div class="metric-hdr"><span style="color:var(--text-muted)">C1 fft_dsp</span><strong id="c1Val" style="color:#ffffff">9%</strong></div>
+            <div class="bar-track"><div id="c1Bar" class="bar-fill" style="width:9%;background:#ffffff;"></div></div>
+
+            <div class="metric-hdr"><span style="color:var(--text-muted)">C2 sla_ctl</span><strong id="c2Val" style="color:var(--green)">12%</strong></div>
+            <div class="bar-track"><div id="c2Bar" class="bar-fill" style="width:12%;background:var(--green);"></div></div>
+          </div>
+
+          <div class="metric-block">
+            <div class="metric-hdr">
+              <span style="color:var(--text-muted)">UL_RX BW:</span>
+              <strong id="tputVal" style="color:var(--cyan)">0.0 Kbps (Host)</strong>
+            </div>
+            <div class="metric-hdr">
+              <span style="color:var(--text-muted)">BW Saved:</span>
+              <strong id="bwSavedVal" style="color:var(--green)">0.0% (FP32)</strong>
+            </div>
+            <div class="bar-track"><div id="bwSavedBar" class="bar-fill" style="width:4%;background:var(--green);"></div></div>
+          </div>
+
+          <div class="metric-block" style="gap:1px;">
+            <div class="kv-row"><span class="kv-label">1.NR_Air_UL</span><span id="tAirVal" class="kv-val">5.0 ms</span></div>
+            <div class="kv-row"><span class="kv-label">2.UPF_Queue</span><span id="tUpfVal" class="kv-val">3.6 ms</span></div>
+            <div class="kv-row"><span class="kv-label">3.MEC_Infer</span><span id="tInfVal" class="kv-val">0.9 ms</span></div>
+            <div class="kv-row"><span class="kv-label">4.DL_QoS_Ack</span><span id="tAckVal" class="kv-val">1.5 ms</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:2px;border-top:1px solid var(--border-dim);font-weight:800;font-size:9.5px;">
+              <span>E2E LOOP:</span>
+              <span id="tTotalLoop" style="color:var(--green)">11.0 / 30ms [OK]</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 05 (LOWER CENTER-RIGHT, SPAN 5): 5G MEC GENAI INCIDENT SYNTHESIZER -->
+      <section id="panel5" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">05</span>
+            <span>mec_genai_ops</span>
+            <span class="panel-sub">— Incident Synthesizer</span>
+          </div>
+          <div class="bar-group" style="gap:4px;">
+            <select id="modelSelect" class="model-select" onchange="changeAiModel(this.value)">
+              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+              <option value="gemini-3.1-flash-lite-preview">gemini-3.1-flash-lite-preview</option>
+              <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+              <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it</option>
+            </select>
+            <strong id="genaiEngineBadge" style="color:var(--green);font-size:9.5px;">(READY)</strong>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="genai-box">
+            <div class="genai-meta-bar">
+              <div class="bar-group" style="gap:4px;">
+                <strong id="genaiStatusHeader" style="color:var(--cyan);font-size:10px;">[5G MEC GENAI REPORT | READY]</strong>
+                <button type="button" id="aiPrevBtn" class="hist-btn" onclick="stepAiHistory(-1)" title="Previous AI Report">◀</button>
+                <span id="aiHistCount" style="font-size:9px;color:#ffffff;font-weight:700;">0/0</span>
+                <button type="button" id="aiNextBtn" class="hist-btn" onclick="stepAiHistory(1)" title="Next AI Report">▶</button>
+              </div>
+              <div id="genaiMetricsRight" style="font-size:9.5px;color:var(--text-muted);">
+                UL: <strong style="color:var(--green)">11.0ms</strong> | AI: <strong style="color:var(--cyan)">--ms</strong> | Slice: <strong style="color:var(--amber)">eMBB-HIGH</strong>
+              </div>
+            </div>
+            <div id="genaiReportBody" class="genai-content">
+              <div class="diag-line">1. Press <strong>[g] Run GenAI Report</strong> or <strong>[s] Shake UE</strong> to synthesize a live 3-sentence incident diagnosis using your Gemini API key.</div>
+              <div class="diag-line">2. Correlates real-time physical vibration/host telemetry with Linux kernel <strong>upf0</strong> queue metrics and URLLC 30.0ms SLA compliance.</div>
+              <div class="diag-line">3. Use the <strong>◀ / ▶</strong> buttons above to cycle through all previously synthesized incident reports at any time.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL 06 (LOWER RIGHT, SPAN 3): COMPACT NODE TELEMETRY (HOST VM / 60HZ IMU) -->
+      <section id="panelNode" class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">
+            <span class="panel-idx">06</span>
+            <span id="p2TitleCode">mec_node_telemetry</span>
+            <span id="p2TitleSub" class="panel-sub">— Host VM</span>
+          </div>
+          <span id="ueModePill" class="pill" style="font-size:9px;padding:0.5px 5px;">UE OFFLINE</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <button class="btn btn-red" onclick="triggerShakeAnomaly()" style="padding:1.5px 6px;font-size:9.5px;">
+              <span class="kbd">[s]</span> Shake UE (Anomaly)
+            </button>
+            <span style="color:var(--text-muted);font-size:9.5px;">Stream: <strong id="streamModeText" style="color:var(--cyan)">Host Poll</strong></span>
+          </div>
+
+          <div class="metric-block">
+            <div class="metric-hdr">
+              <span><strong id="m1Title" style="color:var(--cyan)">MEC_RAM_USAGE</strong> <span id="m1Sub" style="color:var(--text-muted)">(VM RAM)</span></span>
+              <strong id="m1Val">16.8 %</strong>
+            </div>
+            <div class="bar-track"><div id="m1Bar" class="bar-fill" style="width:16.8%;background:var(--cyan);"></div></div>
+          </div>
+
+          <div class="metric-block">
+            <div class="metric-hdr">
+              <span><strong id="m2Title" style="color:var(--green)">MEC_LOAD_AVG</strong> <span id="m2Sub" style="color:var(--text-muted)">(upf0)</span></span>
+              <strong id="m2Val">Load: 0.25 (Pkts: 17)</strong>
+            </div>
+            <div class="bar-track"><div id="m2Bar" class="bar-fill" style="width:18%;background:var(--green);"></div></div>
+          </div>
+
+          <div class="metric-block">
+            <div class="metric-hdr">
+              <span><strong style="color:var(--amber)">NODE_TEMP</strong> <span style="color:var(--text-muted)">(Thermal)</span></span>
+              <strong id="m3Val">35.0 °C (Max 45°C)</strong>
+            </div>
+            <div class="bar-track"><div id="m3Bar" class="bar-fill" style="width:65%;background:var(--amber);"></div></div>
+          </div>
+
+          <div class="metric-block">
+            <div class="metric-hdr">
+              <span><strong id="m4Title" style="color:#ffffff">MEC_HOST_CPU_LOAD</strong></span>
+              <strong id="m4Val" style="color:var(--green)">NOMINAL (11%)</strong>
+            </div>
+            <div class="bar-track"><div id="m4Bar" class="bar-fill" style="width:11%;background:var(--green);"></div></div>
+          </div>
+
+          <div class="node-meta-grid">
+            <div><span style="color:var(--text-muted)">HOST:</span> <strong>user@user</strong></div>
+            <div><span style="color:var(--text-muted)">TS_IP:</span> <strong style="color:var(--cyan)">100.73.187.15</strong></div>
+            <div><span style="color:var(--text-muted)">LAB_IP:</span> <strong>172.16.0.5</strong></div>
+            <div><span style="color:var(--text-muted)">UE:</span> <a href="/phone" target="_blank" style="color:var(--green);text-decoration:none;font-weight:700;">/phone (60Hz)</a></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ROW 4: FOOTER BAR -->
+    <footer class="footer-bar">
+      <div class="bar-group" style="gap:10px;">
+        <span><strong style="color:var(--green)">[1]</strong> Clean 5G</span>
+        <span><strong style="color:var(--amber)">[2]</strong> Handover Spike</span>
+        <span><strong style="color:var(--red)">[3]</strong> Signal Blockage</span>
+        <span><strong style="color:var(--red)">[4]</strong> Cell Congestion</span>
+        <span><strong style="color:var(--cyan)">[c]</strong> Auto-QoS</span>
+        <span><strong style="color:var(--cyan)">[k]</strong> Konsole</span>
+        <span><strong style="color:var(--green)">[f]</strong> Fullscreen</span>
+        <span><strong style="color:var(--red)">[s]</strong> Shake UE</span>
+        <span><strong style="color:var(--amber)">[d]</strong> TUI Docs</span>
+        <span><strong style="color:var(--amber)">[SPACE]</strong> Pause</span>
+      </div>
+      <div>
+        <span>Seq: <strong id="footerSeq" style="color:var(--cyan)">#0001</strong></span>
+        <span style="margin:0 6px;">|</span>
+        <span>Uptime: <strong id="uptimeText" style="color:#ffffff">00:00:00</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY_AI = 'edge_ctl_ai_reports_v3';
+    const startTs = Date.now();
+
+    const state = {
+      ws: null,
+      konsoleWs: null,
+      paused: false,
+      autoQos: true,
+      profile: 1,
+      sliceMode: 'eMBB-HIGH',
+      seq: 1,
+      rttMs: 11.0,
+      peakRttMs: 14.2,
+      jitterMs: 1.0,
+      inferMs: 1.4,
+      tempC: 35.0,
+      gForce: 0.0,
+      anomaly: 11,
+      ax: 0.0,
+      ay: 0.0,
+      az: 9.81,
+      txHz: 0,
+      cores: [13, 9, 12],
+      ramPct: 16.8,
+      loadAvg: 0.25,
+      upfPkts: 17,
+      ueConnected: false,
+      qosSwitches: 0,
+      totalTicks: 1,
+      compliantTicks: 1,
+      rttHistory: new Array(90).fill(11.0),
+      activeTab: 'audit',
+      sshAuthed: false,
+      sshUser: 'user',
+      sshCwd: '/home/user/grp21_usecase',
+      cmdHistory: [],
+      cmdHistIdx: -1,
+      aiHistory: [],
+      aiHistIdx: -1
+    };
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_AI) || '[]');
+      if (Array.isArray(saved) && saved.length > 0) {
+        state.aiHistory = saved;
+        state.aiHistIdx = saved.length - 1;
+      }
+    } catch (e) {}
+
+    (function initUrls() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = location.host || '100.73.187.15:8000';
+      document.getElementById('wsUrlInput').value = `${proto}//${host}/ws/dashboard`;
+      const phoneAnchor = document.getElementById('phoneLinkAnchor');
+      phoneAnchor.href = `${location.protocol}//${host}/phone`;
+      phoneAnchor.textContent = `${location.protocol}//${host}/phone`;
+    })();
+
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clockText').textContent = now.toTimeString().split(' ')[0];
+      const sec = Math.floor((Date.now() - startTs) / 1000);
+      const hh = String(Math.floor(sec / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      const ss = String(sec % 60).padStart(2, '0');
+      document.getElementById('uptimeText').textContent = `${hh}:${mm}:${ss}`;
+    }, 1000);
+
+    function appendLog(level, subsystem, message) {
+      const list = document.getElementById('auditLogList');
+      if (!list) return;
+      const ts = new Date().toTimeString().split(' ')[0];
+      let color = 'var(--cyan)';
+      if (level.includes('BREACH') || level.includes('ERR')) color = 'var(--red)';
+      else if (level.includes('ADAPT') || level.includes('WARN') || level.includes('TC')) color = 'var(--amber)';
+      else if (level.includes('GENAI') || level.includes('OK')) color = 'var(--green)';
+
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = `
+        <span style="color:var(--text-dim)">${ts}</span>
+        <strong style="color:${color}">${level}</strong>
+        <span style="color:var(--text-muted)">${subsystem}</span>
+        <span style="color:#ffffff">${message}</span>
+      `;
+      list.prepend(row);
+      while (list.children.length > 100) {
+        list.removeChild(list.lastChild);
+      }
+    }
+
+    function connectAllWebSockets() {
+      const dashUrl = document.getElementById('wsUrlInput').value.trim();
+      if (!dashUrl) return;
+
+      if (state.ws) { try { state.ws.close(); } catch (e) {} }
+      if (state.konsoleWs) { try { state.konsoleWs.close(); } catch (e) {} }
+
+      const pill = document.getElementById('wsStatusPill');
+      pill.className = 'pill amber';
+      pill.textContent = '● CONNECTING...';
+
+      const ws = new WebSocket(dashUrl);
+      state.ws = ws;
+
+      ws.onopen = () => {
+        pill.className = 'pill green';
+        pill.textContent = `● CONNECTED (${dashUrl})`;
+        appendLog('INFO', 'ws_backend', `Connected to FastAPI MEC Server at ${dashUrl}`);
+      };
+
+      ws.onclose = () => {
+        pill.className = 'pill red';
+        pill.textContent = '● DISCONNECTED';
+      };
+
+      ws.onmessage = (ev) => {
+        if (state.paused) return;
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'telemetry_tick') handleTelemetryTick(msg);
+          else if (msg.type === 'genai_report') handleGenAiReport(msg);
+        } catch (err) {}
+      };
+
+      const konsoleUrl = dashUrl.replace('/ws/dashboard', '/ws/konsole');
+      const kws = new WebSocket(konsoleUrl);
+      state.konsoleWs = kws;
+
+      kws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'traffic_log') {
+            const out = document.getElementById('trafficTermOut');
+            out.textContent = `[${msg.ts}] ${msg.line}`;
+            out.scrollTop = out.scrollHeight;
+          } else if (msg.type === 'ssh_auth') {
+            handleSshAuthResponse(msg);
+          } else if (msg.type === 'ssh_logged_out') {
+            state.sshAuthed = false;
+            updateSshPaneVisibility();
+          } else if (msg.type === 'ssh_output') {
+            const out = document.getElementById('sshTermOut');
+            state.sshCwd = msg.cwd || state.sshCwd;
+            state.sshUser = msg.user || state.sshUser;
+            const promptStr = `${state.sshUser}@user:${state.sshCwd}$`;
+            document.getElementById('sshPromptLabel').textContent = promptStr;
+            out.textContent += `\n${promptStr} ${msg.cmd}\n${msg.output || ''}`;
+            out.scrollTop = out.scrollHeight;
+          }
+        } catch (e) {}
+      };
+    }
+
+    function handleTelemetryTick(d) {
+      state.seq = d.seq || (state.seq + 1);
+      state.rttMs = Number(d.rtt_ms || 11.0);
+      if (state.rttMs > state.peakRttMs) state.peakRttMs = state.rttMs;
+      state.jitterMs = Number(d.jitter_ms || 1.0);
+      state.inferMs = Number(d.infer_ms || 1.2);
+      state.tempC = Number(d.temp_c || 35.0);
+      state.gForce = Number(d.g_force || 0.0);
+      state.anomaly = Number(d.anomaly || 10);
+      state.ax = Number(d.ax || 0.0);
+      state.ay = Number(d.ay || 0.0);
+      state.az = Number(d.az || 9.81);
+      state.sliceMode = d.slice_mode || 'eMBB-HIGH';
+      state.txHz = Number(d.tx_hz || 0);
+      state.cores = Array.isArray(d.cores) ? d.cores : [10, 10, 10];
+      state.ramPct = Number(d.ram_pct || 16.8);
+      state.loadAvg = Number(d.load_avg || 0.2);
+      state.upfPkts = Number(d.upf_pkts || 0);
+      state.ueConnected = Boolean(d.ue_connected);
+
+      state.rttHistory.push(state.rttMs);
+      if (state.rttHistory.length > 90) state.rttHistory.shift();
+
+      state.totalTicks++;
+      if (state.rttMs <= 30.0) state.compliantTicks++;
+
+      if (d.adapt_event) {
+        state.qosSwitches++;
+        appendLog('AUTO-ADAPT', 'qos_controller', d.adapt_event);
+      }
+
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const isBreach = state.rttMs > 30.0;
+      const isCompact = state.sliceMode === 'URLLC-COMPACT';
+
+      const slicePill = document.getElementById('slicePill');
+      if (isCompact) {
+        slicePill.className = 'pill amber';
+        slicePill.textContent = 'SLICE: URLLC-COMPACT [15Hz / INT8-DELTA / 5QI-80]';
+      } else {
+        slicePill.className = 'pill green';
+        slicePill.textContent = 'SLICE: eMBB-HIGH [60Hz / FP32-RAW / 5QI-9]';
+      }
+
+      const srcPill = document.getElementById('dataSourcePill');
+      if (state.ueConnected) {
+        srcPill.className = 'pill green';
+        srcPill.textContent = 'SOURCE: LIVE 5G MOBILE UE (60Hz IMU)';
+      } else {
+        srcPill.className = 'pill cyan';
+        srcPill.textContent = 'SOURCE: MEC SERVER VM';
+      }
+
+      const compPct = ((state.compliantTicks / Math.max(1, state.totalTicks)) * 100).toFixed(1);
+      const compEl = document.getElementById('complianceText');
+      compEl.textContent = `${compPct}%`;
+      compEl.style.color = isBreach ? 'var(--amber)' : 'var(--green)';
+
+      // Panel 1
+      const rttEl = document.getElementById('rttMainVal');
+      rttEl.textContent = `${state.rttMs.toFixed(1)} ms`;
+      rttEl.style.color = isBreach ? 'var(--red)' : 'var(--cyan)';
+      document.getElementById('rttPeakVal').textContent = `${state.peakRttMs.toFixed(1)} ms`;
+      document.getElementById('jitterVal').textContent = `${state.jitterMs.toFixed(1)} ms`;
+      document.getElementById('inferVal').textContent = `${state.inferMs.toFixed(1)} ms`;
+
+      const slaBadge = document.getElementById('slaStateBadge');
+      if (isBreach) {
+        slaBadge.style.color = 'var(--red)';
+        slaBadge.textContent = '▲ SLA BREACH: RTT > 30.0 ms!';
+      } else {
+        slaBadge.style.color = 'var(--green)';
+        slaBadge.textContent = '● SLA: COMPLIANT (<30ms)';
+      }
+
+      document.getElementById('active5qiVal').textContent = isCompact ? '5QI-80 (URLLC)' : '5QI-9 (eMBB)';
+      document.getElementById('codecVal').textContent = isCompact ? 'INT8_DELTA (0.18KB)' : 'RAW_FP32 (1.42KB)';
+      document.getElementById('prbVal').textContent = isCompact ? '12 / 106 PRBs' : '48 / 106 PRBs';
+      document.getElementById('qosSwitchCount').textContent = `${state.qosSwitches} switches`;
+      document.getElementById('p3RateText').textContent = isCompact ? '15Hz INT8' : '60Hz FP32';
+
+      const lossMap = { 1: '0.00 %', 2: '0.80 %', 3: '3.80 %', 4: '0.40 %' };
+      document.getElementById('pktLossVal').textContent = lossMap[state.profile] || '0.00 %';
+
+      // Panel 6 (Node Telemetry)
+      const uePill = document.getElementById('ueModePill');
+      if (state.ueConnected) {
+        document.getElementById('p2TitleCode').textContent = 'ue_imu_stream';
+        document.getElementById('p2TitleSub').textContent = '— 60Hz Phone IMU';
+        uePill.className = 'pill green';
+        uePill.textContent = 'UE: LIVE PHONE';
+        document.getElementById('streamModeText').textContent = `${state.txHz || 60} Hz IMU`;
+
+        document.getElementById('m1Title').textContent = 'ACC_X / ACC_Y';
+        document.getElementById('m1Sub').textContent = '(Shear)';
+        document.getElementById('m1Val').textContent = `${state.ax.toFixed(2)} / ${state.ay.toFixed(2)} m/s²`;
+        document.getElementById('m1Bar').style.width = `${Math.min(100, (Math.abs(state.ax) + Math.abs(state.ay)) * 8 + 10)}%`;
+
+        document.getElementById('m2Title').textContent = 'VIB_G_FORCE';
+        document.getElementById('m2Sub').textContent = '(Shock)';
+        document.getElementById('m2Val').textContent = `${state.gForce.toFixed(2)} g (Max 0.5g)`;
+        document.getElementById('m2Bar').style.width = `${Math.min(100, state.gForce * 100)}%`;
+
+        document.getElementById('m4Title').textContent = 'MEC_ANOMALY_SCORE';
+        document.getElementById('m4Val').textContent = state.anomaly > 55 ? `CRITICAL (${state.anomaly}%)` : `NOMINAL (${state.anomaly}%)`;
+        document.getElementById('m4Val').style.color = state.anomaly > 55 ? 'var(--red)' : 'var(--green)';
+        document.getElementById('m4Bar').style.width = `${Math.min(100, state.anomaly)}%`;
+        document.getElementById('m4Bar').style.background = state.anomaly > 55 ? 'var(--red)' : 'var(--green)';
+      } else {
+        document.getElementById('p2TitleCode').textContent = 'mec_node_telemetry';
+        document.getElementById('p2TitleSub').textContent = '— Host VM';
+        uePill.className = 'pill';
+        uePill.textContent = 'UE OFFLINE';
+        document.getElementById('streamModeText').textContent = 'Host Poll';
+
+        document.getElementById('m1Title').textContent = 'MEC_RAM_USAGE';
+        document.getElementById('m1Sub').textContent = '(VM RAM)';
+        document.getElementById('m1Val').textContent = `${state.ramPct.toFixed(1)} %`;
+        document.getElementById('m1Bar').style.width = `${Math.min(100, state.ramPct)}%`;
+
+        document.getElementById('m2Title').textContent = 'MEC_LOAD_AVG';
+        document.getElementById('m2Sub').textContent = '(upf0)';
+        document.getElementById('m2Val').textContent = `Load: ${state.loadAvg.toFixed(2)} (Pkts: ${state.upfPkts})`;
+        document.getElementById('m2Bar').style.width = `${Math.min(100, state.loadAvg * 25 + 8)}%`;
+
+        document.getElementById('m4Title').textContent = 'MEC_HOST_CPU_LOAD';
+        document.getElementById('m4Val').textContent = `NOMINAL (${state.anomaly}%)`;
+        document.getElementById('m4Val').style.color = 'var(--green)';
+        document.getElementById('m4Bar').style.width = `${Math.min(100, state.anomaly)}%`;
+        document.getElementById('m4Bar').style.background = 'var(--green)';
+      }
+
+      document.getElementById('m3Val').textContent = `${state.tempC.toFixed(1)} °C (Max 45°C)`;
+      document.getElementById('m3Bar').style.width = `${Math.min(100, (state.tempC / 50) * 100)}%`;
+
+      // Panel 4
+      const [c0, c1, c2] = state.cores;
+      const avgCpu = Math.round((c0 + c1 + c2) / 3);
+      document.getElementById('cpuTotalBadge').textContent = `CPU: ${avgCpu}%`;
+      document.getElementById('c0Val').textContent = `${c0}%`;
+      document.getElementById('c0Bar').style.width = `${c0}%`;
+      document.getElementById('c1Val').textContent = `${c1}%`;
+      document.getElementById('c1Bar').style.width = `${c1}%`;
+      document.getElementById('c2Val').textContent = `${c2}%`;
+      document.getElementById('c2Bar').style.width = `${c2}%`;
+
+      if (state.ueConnected) {
+        document.getElementById('tputVal').textContent = isCompact ? '44.2 Kbps (15/s)' : '681.6 Kbps (60/s)';
+      } else {
+        document.getElementById('tputVal').textContent = '0.0 Kbps (Host)';
+      }
+      document.getElementById('bwSavedVal').textContent = isCompact ? '93.5% SAVED (INT8)' : '0.0% (FP32)';
+      document.getElementById('bwSavedBar').style.width = isCompact ? '93.5%' : '4%';
+
+      const airMs = (state.rttMs * 0.45).toFixed(1);
+      const upfMs = (state.rttMs * 0.33).toFixed(1);
+      const ackMs = Math.max(0.6, state.rttMs - airMs - upfMs - state.inferMs).toFixed(1);
+      document.getElementById('tAirVal').textContent = `${airMs} ms`;
+      document.getElementById('tUpfVal').textContent = `${upfMs} ms`;
+      document.getElementById('tInfVal').textContent = `${state.inferMs.toFixed(1)} ms`;
+      document.getElementById('tAckVal').textContent = `${ackMs} ms`;
+
+      const totEl = document.getElementById('tTotalLoop');
+      totEl.textContent = `${state.rttMs.toFixed(1)} / 30ms [${isBreach ? 'BREACH' : 'OK'}]`;
+      totEl.style.color = isBreach ? 'var(--red)' : 'var(--green)';
+
+      document.getElementById('footerSeq').textContent = `#${String(state.seq).padStart(4, '0')}`;
+      drawRttCanvas();
+    }
+
+    let rttHoverMouse = null;
+    (function bindCanvasHover() {
+      window.addEventListener('DOMContentLoaded', () => {
+        const c = document.getElementById('rttCanvas');
+        if (!c) return;
+        c.addEventListener('mousemove', (e) => {
+          const r = c.getBoundingClientRect();
+          rttHoverMouse = { x: e.clientX - r.left, y: e.clientY - r.top };
+          drawRttCanvas();
+        });
+        c.addEventListener('mouseleave', () => {
+          rttHoverMouse = null;
+          drawRttCanvas();
+        });
+      });
+    })();
+
+    function drawRttCanvas() {
+      const canvas = document.getElementById('rttCanvas');
+      if (!canvas) return;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Plot Margins for Y-Axis (Latency ms) and X-Axis (Time Horizon s)
+      const padL = 34;
+      const padR = 8;
+      const padT = 8;
+      const padB = 18;
+      const plotW = Math.max(10, w - padL - padR);
+      const plotH = Math.max(10, h - padT - padB);
+      const maxScale = 75.0;
+
+      const valToY = (v) => padT + plotH - (Math.min(maxScale, Math.max(0, v)) / maxScale) * plotH;
+
+      // 1. Horizontal Latency Grid Lines + Left Y-Axis Labels (0ms to 75ms)
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+
+      [0, 15, 30, 45, 60, 75].forEach(val => {
+        const y = Math.round(valToY(val)) + 0.5;
+        ctx.strokeStyle = val === 30 ? 'rgba(255, 51, 51, 0.25)' : '#16161c';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL + plotW, y);
+        ctx.stroke();
+
+        ctx.fillStyle = val === 30 ? '#ff3333' : '#787885';
+        ctx.fillText(`${val}ms`, padL - 5, y);
+      });
+
+      // 2. Vertical Time Grid Lines + Bottom X-Axis Labels (-16s to NOW)
+      const timeMarks = [
+        { frac: 0.0, label: '-16s' },
+        { frac: 0.25, label: '-12s' },
+        { frac: 0.50, label: '-8s' },
+        { frac: 0.75, label: '-4s' },
+        { frac: 1.0, label: 'NOW(0s)' }
+      ];
+      ctx.textBaseline = 'top';
+      timeMarks.forEach((tm, idx) => {
+        const x = Math.round(padL + tm.frac * plotW) + 0.5;
+        ctx.strokeStyle = '#14141a';
+        ctx.beginPath();
+        ctx.moveTo(x, padT);
+        ctx.lineTo(x, padT + plotH);
+        ctx.stroke();
+
+        ctx.fillStyle = idx === timeMarks.length - 1 ? '#00ffff' : '#787885';
+        ctx.textAlign = idx === 0 ? 'left' : (idx === timeMarks.length - 1 ? 'right' : 'center');
+        ctx.fillText(tm.label, x, padT + plotH + 4);
+      });
+
+      // 3. Axes Border Lines (Left Y-Axis & Bottom X-Axis)
+      ctx.strokeStyle = '#2e2e38';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL + 0.5, padT);
+      ctx.lineTo(padL + 0.5, padT + plotH + 0.5);
+      ctx.lineTo(padL + plotW, padT + plotH + 0.5);
+      ctx.stroke();
+
+      // 4. Draw Telemetry RTT Bars Inside Plot Area
+      const len = state.rttHistory.length;
+      const step = plotW / len;
+      const barW = Math.max(1.5, step - 1.5);
+
+      for (let i = 0; i < len; i++) {
+        const val = state.rttHistory[i];
+        const barTop = valToY(val);
+        const normH = Math.max(2, (padT + plotH) - barTop);
+        const x = padL + i * step + 0.5;
+
+        if (val > 30.0) {
+          ctx.fillStyle = '#ff3333';
+        } else if (state.sliceMode === 'URLLC-COMPACT') {
+          ctx.fillStyle = '#00ff66';
+        } else {
+          ctx.fillStyle = '#00ffff';
+        }
+        ctx.fillRect(x, barTop, barW, normH);
+      }
+
+      // 5. Draw 30.0ms URLLC SLA Threshold Line
+      const slaY = Math.round(valToY(30.0)) + 0.5;
+      ctx.strokeStyle = '#ff3333';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, slaY);
+      ctx.lineTo(padL + plotW, slaY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#ff3333';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('30.0ms URLLC SLA LIMIT', padL + 6, Math.max(padT + 10, slaY - 2));
+
+      // 6. Interactive Hover Crosshair & Value Readout
+      if (rttHoverMouse && rttHoverMouse.x >= padL && rttHoverMouse.x <= padL + plotW && rttHoverMouse.y >= padT && rttHoverMouse.y <= padT + plotH) {
+        const idx = Math.min(len - 1, Math.max(0, Math.floor(((rttHoverMouse.x - padL) / plotW) * len)));
+        const sampleVal = state.rttHistory[idx];
+        const secsAgo = ((len - 1 - idx) * 0.18).toFixed(1);
+        const cx = padL + idx * step + barW / 2;
+        const cy = valToY(sampleVal);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(cx, padT);
+        ctx.lineTo(cx, padT + plotH);
+        ctx.moveTo(padL, cy);
+        ctx.lineTo(padL + plotW, cy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const tag = `T-${secsAgo}s | RTT: ${sampleVal.toFixed(1)}ms`;
+        ctx.font = 'bold 9.5px monospace';
+        const tw = ctx.measureText(tag).width + 10;
+        const tx = Math.min(padL + plotW - tw - 2, Math.max(padL + 4, cx + 6));
+        const ty = Math.max(padT + 2, cy - 18);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(tx, ty, tw, 15);
+        ctx.strokeStyle = sampleVal > 30.0 ? '#ff3333' : '#00ffff';
+        ctx.strokeRect(tx, ty, tw, 15);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tag, tx + 5, ty + 7.5);
+      }
+
+      ctx.restore();
+    }
+
+    function handleGenAiReport(msg) {
+      const entry = {
+        seq: msg.seq || state.seq,
+        engine: msg.engine || 'gemini-3.1-flash-lite (LIVE API)',
+        rtt_ms: Number(msg.rtt_ms || state.rttMs),
+        ai_ms: Number(msg.ai_ms || 420),
+        slice_mode: msg.slice_mode || state.sliceMode,
+        report: (msg.report || '').trim(),
+        ts: new Date().toTimeString().split(' ')[0]
+      };
+      if (!entry.report) return;
+
+      state.aiHistory.push(entry);
+      if (state.aiHistory.length > 50) state.aiHistory.shift();
+      state.aiHistIdx = state.aiHistory.length - 1;
+      try {
+        localStorage.setItem(STORAGE_KEY_AI, JSON.stringify(state.aiHistory));
+      } catch (e) {}
+
+      renderAiReportEntry();
+      appendLog('GENAI OPS', entry.engine, `Synthesized incident report for Seq #${entry.seq}`);
+    }
+
+    function renderAiReportEntry() {
+      const prevBtn = document.getElementById('aiPrevBtn');
+      const nextBtn = document.getElementById('aiNextBtn');
+      const countEl = document.getElementById('aiHistCount');
+
+      if (state.aiHistory.length === 0 || state.aiHistIdx < 0) {
+        countEl.textContent = '0/0';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      const item = state.aiHistory[state.aiHistIdx];
+      countEl.textContent = `${state.aiHistIdx + 1}/${state.aiHistory.length}`;
+      prevBtn.disabled = state.aiHistIdx <= 0;
+      nextBtn.disabled = state.aiHistIdx >= state.aiHistory.length - 1;
+
+      document.getElementById('genaiStatusHeader').textContent = `[5G MEC GENAI REPORT | Seq #${item.seq}]`;
+      document.getElementById('genaiEngineBadge').textContent = item.engine;
+      document.getElementById('genaiMetricsRight').innerHTML = `
+        UL: <strong style="color:var(--green)">${item.rtt_ms.toFixed(1)}ms</strong> |
+        AI: <strong style="color:var(--cyan)">${Math.round(item.ai_ms)}ms</strong> |
+        Slice: <strong style="color:var(--amber)">${item.slice_mode}</strong>
+      `;
+
+      const lines = item.report.split(/\n+/).map(s => s.trim()).filter(Boolean);
+      const bodyEl = document.getElementById('genaiReportBody');
+      bodyEl.innerHTML = lines.map(line => `<div class="diag-line">${escapeHtml(line)}</div>`).join('');
+    }
+
+    function stepAiHistory(delta) {
+      if (state.aiHistory.length === 0) return;
+      const next = state.aiHistIdx + delta;
+      if (next < 0 || next >= state.aiHistory.length) return;
+      state.aiHistIdx = next;
+      renderAiReportEntry();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function toggleAutoQos() {
+      state.autoQos = !state.autoQos;
+      const btn = document.getElementById('autoQosBtn');
+      const p3Btn = document.getElementById('p3LoopBtn');
+      const txt = document.getElementById('autoQosText');
+
+      if (state.autoQos) {
+        btn.className = 'btn btn-green';
+        txt.textContent = 'ON (ACTIVE)';
+        p3Btn.className = 'btn btn-green';
+        p3Btn.textContent = '[C] ON';
+      } else {
+        btn.className = 'btn btn-red';
+        txt.textContent = 'OFF (OPEN-LOOP)';
+        p3Btn.className = 'btn btn-red';
+        p3Btn.textContent = '[C] OFF';
+      }
+
+      if (state.ws && state.ws.readyState === 1) {
+        state.ws.send(JSON.stringify({ action: 'toggle_auto_qos', enabled: state.autoQos }));
+      }
+      appendLog('INFO', 'qos_controller', `Set Closed-Loop Auto-QoS = ${state.autoQos}`);
+    }
+
+    function selectImpairment(prof) {
+      state.profile = prof;
+      for (let i = 1; i <= 4; i++) {
+        const b = document.getElementById(`profBtn${i}`);
+        b.className = i === prof ? `netem-row-btn active-${i}` : 'netem-row-btn';
+      }
+      const cmds = {
+        1: '$ sudo tc qdisc del dev upf0 root',
+        2: '$ sudo tc qdisc replace dev upf0 root netem delay 28ms 9ms loss 0.8%',
+        3: '$ sudo tc qdisc replace dev upf0 root netem delay 56ms 18ms loss 3.8%',
+        4: '$ sudo tc qdisc replace dev upf0 root netem rate 150kbit delay 38ms 12ms'
+      };
+      const names = {
+        1: '[1] Clean',
+        2: '[2] +28ms Handover',
+        3: '[3] +56ms Blockage',
+        4: '[4] 150kbit Congest'
+      };
+      document.getElementById('tcCmdPreview').textContent = cmds[prof] || cmds[1];
+      const profTxt = document.getElementById('p3ProfText');
+      profTxt.textContent = names[prof] || names[1];
+      profTxt.style.color = prof === 1 ? 'var(--green)' : (prof === 2 ? 'var(--amber)' : 'var(--red)');
+
+      if (state.ws && state.ws.readyState === 1) {
+        state.ws.send(JSON.stringify({ action: 'set_impairment', profile: prof }));
+      }
+      appendLog('KERNEL TC', 'upf0_netem', `Applied profile [${prof}]: ${cmds[prof]}`);
+    }
+
+    function triggerShakeAnomaly() {
+      if (state.ws && state.ws.readyState === 1) {
+        state.ws.send(JSON.stringify({ action: 'trigger_shake' }));
+      }
+      appendLog('WARN', 'imu_sensor', 'Injected High-G kinematic vibration spike');
+      requestGenAiReportManual();
+    }
+
+    function changeAiModel(modelName) {
+      if (state.ws && state.ws.readyState === 1) {
+        state.ws.send(JSON.stringify({ action: 'set_model', model: modelName }));
+      }
+      appendLog('INFO', 'mec_genai_ops', `Switched primary AI model to ${modelName}`);
+    }
+
+    function requestGenAiReportManual() {
+      const model = document.getElementById('modelSelect').value;
+      document.getElementById('genaiStatusHeader').textContent = `[SYNTHESIZING VIA ${model.toUpperCase()}...]`;
+      if (state.ws && state.ws.readyState === 1) {
+        state.ws.send(JSON.stringify({
+          action: 'request_genai_report',
+          model,
+          temp_c: state.tempC,
+          g_force: Math.max(0.82, state.gForce),
+          anomaly_pct: Math.max(82, state.anomaly),
+          rtt_ms: state.rttMs,
+          jitter_ms: state.jitterMs,
+          seq: state.seq,
+          slice_mode: state.sliceMode
+        }));
+      }
+    }
+
+    function switchPanel6Tab(tab) {
+      state.activeTab = tab;
+      document.getElementById('tabBtnAudit').className = tab === 'audit' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('tabBtnTraffic').className = tab === 'traffic' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('tabBtnSsh').className = tab === 'ssh' ? 'tab-btn active' : 'tab-btn';
+
+      document.getElementById('paneAudit').className = tab === 'audit' ? 'konsole-pane active' : 'konsole-pane';
+      document.getElementById('paneTraffic').className = tab === 'traffic' ? 'konsole-pane active' : 'konsole-pane';
+      document.getElementById('paneSsh').className = tab === 'ssh' ? 'konsole-pane active' : 'konsole-pane';
+
+      if (tab === 'ssh') {
+        updateSshPaneVisibility();
+      } else {
+        document.getElementById('sshLogoutBtn').style.display = 'none';
+      }
+    }
+
+    function toggleFullscreenKonsole() {
+      const pKonsole = document.getElementById('panelKonsole');
+      pKonsole.classList.toggle('fullscreen-modal');
+      if (pKonsole.classList.contains('fullscreen-modal') && state.activeTab === 'audit') {
+        switchPanel6Tab('ssh');
+      }
+    }
+
+    function refreshTcStats() {
+      if (state.konsoleWs && state.konsoleWs.readyState === 1) {
+        state.konsoleWs.send(JSON.stringify({ action: 'refresh_tc' }));
+      }
+      if (state.activeTab === 'audit') switchPanel6Tab('traffic');
+    }
+
+    function clearActivePane() {
+      if (state.activeTab === 'audit') document.getElementById('auditLogList').innerHTML = '';
+      else if (state.activeTab === 'traffic') document.getElementById('trafficTermOut').textContent = '';
+      else if (state.activeTab === 'ssh') document.getElementById('sshTermOut').textContent = '';
+    }
+
+    function updateSshPaneVisibility() {
+      const authCard = document.getElementById('sshAuthCard');
+      const termOut = document.getElementById('sshTermOut');
+      const quickBar = document.getElementById('sshQuickBar');
+      const promptBar = document.getElementById('sshPromptBar');
+      const logoutBtn = document.getElementById('sshLogoutBtn');
+
+      if (state.sshAuthed) {
+        authCard.style.display = 'none';
+        termOut.style.display = 'block';
+        quickBar.style.display = 'flex';
+        promptBar.style.display = 'flex';
+        logoutBtn.style.display = 'inline-flex';
+        setTimeout(() => document.getElementById('sshCmdInput').focus(), 40);
+      } else {
+        authCard.style.display = 'flex';
+        termOut.style.display = 'none';
+        quickBar.style.display = 'none';
+        promptBar.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        setTimeout(() => document.getElementById('sshPassInput').focus(), 40);
+      }
+    }
+
+    function submitSshLogin() {
+      const pw = document.getElementById('sshPassInput').value;
+      if (!pw) return;
+      document.getElementById('sshAuthErr').style.display = 'none';
+      if (state.konsoleWs && state.konsoleWs.readyState === 1) {
+        state.konsoleWs.send(JSON.stringify({ action: 'ssh_login', password: pw }));
+      }
+    }
+
+    function handleSshAuthResponse(msg) {
+      if (msg.success) {
+        state.sshAuthed = true;
+        state.sshUser = msg.user || 'user';
+        state.sshCwd = msg.cwd || '/home/user/grp21_usecase';
+        document.getElementById('sshPassInput').value = '';
+        document.getElementById('sshPromptLabel').textContent = `${state.sshUser}@user:${state.sshCwd}$`;
+        const termOut = document.getElementById('sshTermOut');
+        termOut.textContent = msg.banner || 'Connected to Ubuntu 22.04 MEC Server (/bin/bash)';
+        updateSshPaneVisibility();
+      } else {
+        state.sshAuthed = false;
+        const errEl = document.getElementById('sshAuthErr');
+        errEl.textContent = msg.error || 'Authentication failed';
+        errEl.style.display = 'block';
+      }
+    }
+
+    function logoutSsh() {
+      if (state.konsoleWs && state.konsoleWs.readyState === 1) {
+        state.konsoleWs.send(JSON.stringify({ action: 'ssh_logout' }));
+      }
+      state.sshAuthed = false;
+      updateSshPaneVisibility();
+    }
+
+    function sendBashCommand(cmd) {
+      const clean = (cmd || '').trim();
+      if (!clean) return;
+      if (clean === 'clear') {
+        document.getElementById('sshTermOut').textContent = '';
+        return;
+      }
+      state.cmdHistory.push(clean);
+      state.cmdHistIdx = state.cmdHistory.length;
+      if (state.konsoleWs && state.konsoleWs.readyState === 1) {
+        state.konsoleWs.send(JSON.stringify({ action: 'ssh_exec', cmd: clean }));
+      }
+    }
+
+    function execQuickBash(cmd, profileNum) {
+      if (profileNum > 0) selectImpairment(profileNum);
+      if (state.sshAuthed) sendBashCommand(cmd);
+      else refreshTcStats();
+    }
+
+    document.getElementById('sshCmdInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = e.target.value;
+        e.target.value = '';
+        sendBashCommand(val);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (state.cmdHistory.length > 0 && state.cmdHistIdx > 0) {
+          state.cmdHistIdx--;
+          e.target.value = state.cmdHistory[state.cmdHistIdx];
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (state.cmdHistIdx < state.cmdHistory.length - 1) {
+          state.cmdHistIdx++;
+          e.target.value = state.cmdHistory[state.cmdHistIdx];
+        } else {
+          state.cmdHistIdx = state.cmdHistory.length;
+          e.target.value = '';
+        }
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const pKonsole = document.getElementById('panelKonsole');
+        if (pKonsole.classList.contains('fullscreen-modal')) pKonsole.classList.remove('fullscreen-modal');
+        return;
+      }
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+
+      if (e.key === '1') selectImpairment(1);
+      else if (e.key === '2') selectImpairment(2);
+      else if (e.key === '3') selectImpairment(3);
+      else if (e.key === '4') selectImpairment(4);
+      else if (e.key === 'c' || e.key === 'C') toggleAutoQos();
+      else if (e.key === 's' || e.key === 'S') triggerShakeAnomaly();
+      else if (e.key === 'g' || e.key === 'G') requestGenAiReportManual();
+      else if (e.key === 'k' || e.key === 'K') switchPanel6Tab(state.activeTab === 'ssh' ? 'traffic' : 'ssh');
+      else if (e.key === 'f' || e.key === 'F') toggleFullscreenKonsole();
+      else if (e.code === 'Space') {
+        e.preventDefault();
+        state.paused = !state.paused;
+        appendLog('INFO', 'ui_control', state.paused ? 'Paused telemetry stream' : 'Resumed telemetry stream');
+      }
+    });
+
+    window.addEventListener('resize', drawRttCanvas);
+
+    renderAiReportEntry();
+    renderDashboard();
+    connectAllWebSockets();
+  </script>
+<!-- START TUI DOCS ENGINE -->
+<style>
+  .tui-docs-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.96);
+    display: none;
+    flex-direction: column;
+    padding: 8px;
+    font-family: var(--font-mono);
+    color: #ffffff;
+  }
+  .tui-docs-overlay.open {
+    display: flex;
+  }
+  .docs-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--cyan);
+    background: #000000;
+    overflow: hidden;
+  }
+  .docs-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #08080b;
+    border-bottom: 1px solid var(--border-dim);
+    flex-shrink: 0;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .docs-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background: #040406;
+    border-bottom: 1px solid var(--border-dim);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .docs-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #000000;
+    border: 1px solid var(--border-bright);
+    padding: 3px 8px;
+    width: 340px;
+    max-width: 100%;
+  }
+  .docs-search-wrap:focus-within {
+    border-color: var(--cyan);
+  }
+  .docs-search-input {
+    background: transparent;
+    border: none;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    width: 100%;
+    outline: none;
+  }
+  .docs-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .docs-filter-btn {
+    background: #000000;
+    border: 1px solid var(--border-dim);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    cursor: pointer;
+  }
+  .docs-filter-btn:hover {
+    color: #ffffff;
+    border-color: var(--border-bright);
+  }
+  .docs-filter-btn.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: var(--cyan-dim);
+  }
+  .docs-body {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .docs-section {
+    border: 1px solid var(--border-dim);
+    background: #030304;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .docs-sec-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border-dim);
+    padding-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .arch-card {
+    border: 1px solid var(--border-dim);
+    background: #000000;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dict-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 8px;
+  }
+  .dict-card {
+    border: 1px solid var(--border-dim);
+    background: #000000;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dict-card:hover {
+    border-color: var(--border-bright);
+  }
+  .dict-card-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    border-bottom: 1px dashed #1c1c22;
+    padding-bottom: 3px;
+  }
+  .dict-term {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--green);
+  }
+  .dict-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0.5px 5px;
+    border: 1px solid var(--border-bright);
+    color: var(--cyan);
+    background: #08080c;
+  }
+  .dict-tech {
+    font-size: 9.5px;
+    color: var(--text-muted);
+  }
+  .dict-means {
+    font-size: 10.5px;
+    color: #ffffff;
+    line-height: 1.38;
+  }
+  .panel-help-btn {
+    background: #000000;
+    border: 1px solid var(--border-bright);
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 800;
+    padding: 0 4px;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  .panel-help-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: var(--cyan-dim);
+  }
+  /* Custom TTY Hover Popover for [?] Buttons */
+  .tty-hover-card {
+    position: fixed;
+    z-index: 10005;
+    width: 310px;
+    background: #000000;
+    border: 1px solid var(--cyan);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.96);
+    padding: 8px 10px;
+    pointer-events: none;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    font-family: var(--font-mono);
+  }
+  .tty-hover-card.visible {
+    display: flex;
+  }
+  @media (max-width: 1000px) {
+    .arch-grid { grid-template-columns: 1fr; }
+    .dict-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Custom TTY Hover Popover -->
+<div id="ttyHoverCard" class="tty-hover-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-dim);padding-bottom:3px;">
+    <strong id="ttyHoverTitle" style="color:var(--cyan);font-size:10.5px;">01 // ul_telemetry_link</strong>
+    <span style="color:var(--green);font-size:9px;font-weight:700;">[PANEL SUMMARY]</span>
+  </div>
+  <div id="ttyHoverDesc" style="color:#ffffff;font-size:10px;line-height:1.38;"></div>
+  <div id="ttyHoverRole" style="color:var(--text-muted);font-size:9.5px;line-height:1.3;"></div>
+  <div style="border-top:1px dashed var(--border-dim);padding-top:3px;color:var(--amber);font-size:9px;font-weight:700;">
+    ▶ Click [?] to open this panel's dictionary in TUI Docs
+  </div>
+</div>
+
+<div id="tuiDocsModal" class="tui-docs-overlay">
+  <div class="docs-shell">
+    <!-- Top Header -->
+    <div class="docs-hdr">
+      <div class="bar-group" style="gap:8px;">
+        <span class="brand-tag" style="background:var(--cyan);color:#000;">TUI-DOCS // README.md</span>
+        <strong style="font-size:12px;color:#fff;">EDGE-CTL 5G MEC Architecture, IRL Scenarios &amp; Interactive Keyword Dictionary</strong>
+      </div>
+      <div class="bar-group">
+        <span style="color:var(--text-muted);font-size:10px;">Shortcuts: <strong style="color:var(--cyan)">[/]</strong> Search | <strong style="color:var(--amber)">[d / Esc]</strong> Close</span>
+        <button class="btn btn-red" onclick="closeTuiDocs()">[Esc] ✕ Close Docs</button>
+      </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="docs-toolbar">
+      <div class="docs-search-wrap">
+        <span style="color:var(--cyan);font-weight:800;">🔍</span>
+        <input id="docsSearchInput" type="text" class="docs-search-input" placeholder="Search any keyword, metric, panel (e.g. 5QI, PRB, upf0, RTT, INT8)..." oninput="renderDocsContent()" />
+        <button class="tab-btn" onclick="clearDocsSearch()" style="font-size:9px;">[clear]</button>
+      </div>
+
+      <div class="docs-filter-bar" id="docsFilterBar">
+        <button class="docs-filter-btn active" data-cat="ALL" onclick="setDocsCategory('ALL')">ALL DOCS + DICTIONARY</button>
+        <button class="docs-filter-btn" data-cat="ARCH" onclick="setDocsCategory('ARCH')">📖 ARCHITECTURE &amp; IRL</button>
+        <button class="docs-filter-btn" data-cat="HEADER" onclick="setDocsCategory('HEADER')">TOP HEADER</button>
+        <button class="docs-filter-btn" data-cat="P01" onclick="setDocsCategory('P01')">01: UL_TELEMETRY</button>
+        <button class="docs-filter-btn" data-cat="P02" onclick="setDocsCategory('P02')">02: KONSOLE_SHELL</button>
+        <button class="docs-filter-btn" data-cat="P03" onclick="setDocsCategory('P03')">03: NETEM_CTRL</button>
+        <button class="docs-filter-btn" data-cat="P04" onclick="setDocsCategory('P04')">04: MEC_PIPELINE</button>
+        <button class="docs-filter-btn" data-cat="P05" onclick="setDocsCategory('P05')">05: GENAI_OPS</button>
+        <button class="docs-filter-btn" data-cat="P06" onclick="setDocsCategory('P06')">06: NODE_TELEMETRY</button>
+      </div>
+    </div>
+
+    <!-- Main Scrollable Documentation Body -->
+    <div class="docs-body" id="docsScrollBody">
+      <!-- Focused Panel Overview Banner (Shown when a specific panel P01-P06 is selected) -->
+      <div id="docsPanelFocusBanner" class="docs-section" style="display:none;border-color:var(--cyan);background:#04080c;">
+        <div class="docs-sec-title">
+          <span id="focusBannerTitle">PANEL OVERVIEW</span>
+          <button class="btn" onclick="setDocsCategory('ALL')" style="font-size:9px;padding:1px 6px;">Show All Panels</button>
+        </div>
+        <div id="focusBannerDesc" style="color:#ffffff;font-size:11px;line-height:1.45;"></div>
+        <div id="focusBannerRole" style="color:var(--green);font-size:10px;"></div>
+      </div>
+
+      <!-- SECTION 1: HOW OUR PROJECT WORKS -->
+      <div id="docsArchSection" class="docs-section">
+        <div class="docs-sec-title">
+          <span>01 // HOW THE PROJECT WORKS — THE 5G EDGE TELEMETRY PARADOX &amp; CLOSED-LOOP SLA CONTROL</span>
+          <span style="font-size:9.5px;color:var(--green);">MEC VM: 172.16.0.5 | Tailscale: 100.73.187.15</span>
+        </div>
+        <div class="arch-grid">
+          <div class="arch-card">
+            <strong style="color:var(--red);">1. The Problem: Open-Loop Bufferbloat</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              High-precision industrial sensors stream uncompressed <strong>60Hz RAW_FP32</strong> telemetry (<strong>681.6 Kbps</strong>) over a standard 5G <strong>eMBB (5QI-9)</strong> slice. When wireless impairments hit—such as a cell tower handover (<strong>+28ms</strong>), mmWave line-of-sight blockage (<strong>+56ms</strong>), or cell PRB congestion (<strong>150kbit cap</strong>)—keep-alive 60Hz packets pile up inside the Linux kernel <strong>upf0</strong> queue. Uplink RTT spikes to <strong>45–95 ms</strong>, violating the <strong>30.0 ms URLLC SLA</strong>.
+            </p>
+          </div>
+          <div class="arch-card">
+            <strong style="color:var(--green);">2. The Solution: Sub-Second Closed-Loop Auto-QoS</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              Our FastAPI MEC controller continuously probes the real Linux kernel <strong>upf0 (N3 GTP-U)</strong> interface and measures live WebSocket RTT. If RTT breaches <strong>30.0 ms</strong> for 2 consecutive ticks, the MEC server sends a downlink control frame over <code>/ws/ue</code> instructing the sensor node to switch to <strong>URLLC-COMPACT (15Hz INT8_DELTA, 5QI-80)</strong>. This cuts wireless bandwidth by <strong>93.5%</strong> (down to <strong>44.2 Kbps</strong>), drains the UPF packet queue, and pulls RTT back to <strong>~18–20 ms (&lt;30ms SLA)</strong> while the radio impairment is still active.
+            </p>
+          </div>
+          <div class="arch-card">
+            <strong style="color:var(--cyan);">3. Dual-Source Telemetry + Gemini Edge-AI</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              When a smartphone connects to <code>/phone</code>, it streams live 60Hz hardware accelerometer &amp; gyroscope vectors (<code>ax, ay, az</code>) over WebSockets. When no phone is connected, the server streams live Ubuntu VM hardware telemetry (<code>psutil</code> RAM, kernel load average, thermal zones, and <code>upf0</code> packet counters). Pressing <strong>[g]</strong> or <strong>[s]</strong> feeds the live snapshot into Google's lightweight Gemini models (<code>gemini-3.1-flash-lite</code>) for an instant 3-sentence operator diagnosis.
+            </p>
+          </div>
+        </div>
+
+        <div class="docs-sec-title" style="margin-top:4px;">
+          <span>02 // REAL-WORLD (IRL) DEPLOYMENT SCENARIOS</span>
+          <span style="font-size:9.5px;color:var(--amber);">Industry 4.0 / Private 5G Applications</span>
+        </div>
+        <div class="arch-grid">
+          <div class="arch-card">
+            <strong style="color:var(--cyan);">🏭 Scenario A: Smart Factory CNC Spindle &amp; Robotic Arm Interlock</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              <strong>IRL Setup:</strong> The smartphone IMU acts as a 60Hz vibration/shear sensor mounted on a high-speed CNC milling spindle or 6-axis robotic arm connected over factory Private 5G (Band n78).<br/>
+              <strong>Why It Matters:</strong> Moving overhead cranes cause temporary <strong>mmWave Blockage [3]</strong>. If bearing chatter spikes vibration above <strong>0.50g</strong>, Closed-Loop Auto-QoS guarantees the anomaly packet reaches the MEC PLC interlock in <strong>&lt;30.0 ms</strong> before the tool shatters.
+            </p>
+          </div>
+          <div class="arch-card">
+            <strong style="color:var(--amber);">🤖 Scenario B: Autonomous Warehouse AMR / AGV Fleet Control</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              <strong>IRL Setup:</strong> Autonomous Mobile Robots (AMRs) driving across a warehouse floor, roaming between indoor 5G small cells (<strong>[2] gNB Handover Spike</strong>) and sharing cell capacity (<strong>[4] PRB Congest</strong>).<br/>
+              <strong>Why It Matters:</strong> Robots stream 60Hz kinematic odometry to the MEC navigation server. Compressing to <strong>15Hz INT8 (5QI-80)</strong> during cell handovers prevents packet queue stalls so emergency collision-avoidance braking stays under <strong>30 ms</strong>.
+            </p>
+          </div>
+          <div class="arch-card">
+            <strong style="color:var(--green);">🖥️ Scenario C: 5G Cell-Site MEC Micro-Datacenter Telemetry</strong>
+            <p style="color:var(--text-muted);font-size:10px;line-height:1.4;">
+              <strong>IRL Setup:</strong> Remote monitoring of a ruggedized Ubuntu MEC server rack (<code>172.16.0.5</code>) deployed at the base of a 5G gNodeB tower alongside a chassis seismic/shock sensor.<br/>
+              <strong>Why It Matters:</strong> Operators correlate Linux kernel <code>upf0</code> N3 tunnel queuing, VM RAM, and CPU core load with physical rack vibration and server thermal zones—plus execute live <code>tc qdisc</code> remediation via the built-in <strong>2:ssh</strong> terminal.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: SEARCHABLE MASTER KEYWORD DICTIONARY -->
+      <div class="docs-section">
+        <div class="docs-sec-title">
+          <span>03 // MASTER KEYWORD &amp; METRIC DICTIONARY (<span id="dictMatchCount">0</span> ITEMS)</span>
+          <span style="font-size:9.5px;color:var(--text-muted);">Every keyword explained with its technical source and what it means</span>
+        </div>
+        <div id="docsDictGrid" class="dict-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PANEL_SUMMARIES = {
+    HEADER: {
+      title: "TOP HEADER // Global Slice, Auto-QoS & Data Source Bar",
+      desc: "Displays active 5G network slice (eMBB-HIGH vs URLLC-COMPACT), Closed-Loop Auto-QoS toggle [c], active telemetry source (Host VM vs Mobile UE), and overall 30.0ms SLA compliance percentage.",
+      role: "Controls global closed-loop automation and manual GenAI report generation [g]."
+    },
+    P01: {
+      title: "PANEL 01 // ul_telemetry_link (5G N3 RTT Oscilloscope & Radio PHY)",
+      desc: "Plots real-time 5G N3 uplink round-trip latency (0–75ms Y-axis over a 16-second rolling X-axis horizon) against the 30.0ms URLLC SLA ceiling, paired with gNB-N78-MEC01 radio parameters.",
+      role: "Visualizes instant SLA breaches (red bars >30ms) and Closed-Loop QoS recovery (green bars <30ms)."
+    },
+    P02: {
+      title: "PANEL 02 // konsole_&_audit (Audit Stream, Kernel TC & Interactive Bash SSH)",
+      desc: "Provides 3 live operational tabs: [0:audit_log] for QoS/AI events, [1:upf0_tc] for live Linux kernel qdisc stats, and [2:ssh] for an authenticated /bin/bash shell on user@100.73.187.15.",
+      role: "Lets you inspect kernel packet queues and run real Linux commands or one-click TC macros."
+    },
+    P03: {
+      title: "PANEL 03 // netem_ctrl (Linux Kernel upf0 5G Channel Impairment Injector)",
+      desc: "Executes real 'sudo tc qdisc replace dev upf0 root netem' commands inside the Ubuntu VM kernel to inject Handover Spikes [2], mmWave Blockage [3], or PRB Rate Congestion [4].",
+      role: "Triggers real kernel queuing delays on interface upf0 to test Closed-Loop Auto-QoS adaptation."
+    },
+    P04: {
+      title: "PANEL 04 // mec_pipeline (MEC Per-Core Compute, Bitrate & E2E Loop Breakdown)",
+      desc: "Monitors Ubuntu VM CPU cores (C0 ingest, C1 FFT DSP, C2 SLA control), uplink wireless bitrate savings (93.5% saved in INT8 mode), and the 4-stage End-to-End latency breakdown.",
+      role: "Proves how compressing from 681.6 Kbps (FP32) to 44.2 Kbps (INT8) drains the UPF queue."
+    },
+    P05: {
+      title: "PANEL 05 // mec_genai_ops (State-Aware Gemini Edge-AI Incident Synthesizer)",
+      desc: "Streams live telemetry and upf0 QoS state to Google's lightweight Gemini models (gemini-3.1-flash-lite) to synthesize a 3-sentence industrial operator diagnosis with persistent ◀/▶ history.",
+      role: "Correlates physical vibration anomalies with 5G network slice performance and gives actionable fixes."
+    },
+    P06: {
+      title: "PANEL 06 // mec_node_telemetry / ue_imu_stream (Dual-Source Hardware Telemetry)",
+      desc: "Automatically switches between Ubuntu MEC VM hardware sensors (RAM %, Kernel Load, upf0 packets, Thermal °C, CPU %) when idle, and live 60Hz smartphone IMU G-force/shear vectors when connected.",
+      role: "Provides the physical hardware and kinematic sensor inputs for anomaly detection [s]."
+    }
+  };
+
+  const TUI_DICTIONARY = [
+    // TOP HEADER
+    { term: "EDGE-CTL", cat: "HEADER", panel: "Top Header", tech: "5G Multi-Access Edge Computing (MEC) Control Plane", means: "The master operations dashboard running on your Ubuntu 22.04 MEC VM that monitors 5G latency, shapes Linux kernel traffic, and adapts sensor streaming rates." },
+    { term: "SLICE: eMBB-HIGH [60Hz / FP32-RAW / 5QI-9]", cat: "HEADER", panel: "Top Header", tech: "Enhanced Mobile Broadband Slice (5G QoS Identifier 9)", means: "The default high-bandwidth mode. When the 5G network is fast (<30ms), the sensor streams 60 times per second using full 32-bit decimal numbers for maximum accuracy." },
+    { term: "SLICE: URLLC-COMPACT [15Hz / INT8-DELTA / 5QI-80]", cat: "HEADER", panel: "Top Header", tech: "Ultra-Reliable Low-Latency Communications Slice (5QI-80)", means: "The emergency low-latency mode. When lag crosses 30ms, the server switches the sensor down to 15 updates per second using compact 8-bit numbers, cutting data size by 93.5% so packets stop jamming the queue." },
+    { term: "[c] Auto-QoS: ON (ACTIVE) / OFF (OPEN-LOOP)", cat: "HEADER", panel: "Top Header", tech: "Closed-Loop SLA Automation Controller", means: "When ON, the server automatically rescues the connection whenever latency exceeds 30ms. When turned OFF (Open-Loop), the server does not intervene, letting you demonstrate how latency blows up during network congestion." },
+    { term: "SOURCE: MEC SERVER VM vs. LIVE 5G MOBILE UE", cat: "HEADER", panel: "Top Header", tech: "Telemetry Ingest Multiplexer (/ws/ue vs psutil)", means: "Tells you where the dashboard data is coming from right now: either the Ubuntu server's own CPU/RAM/Kernel stats (when no phone is connected) or live 60Hz motion sensors from your smartphone." },
+    { term: "IFACE: upf0 (N3)", cat: "HEADER", panel: "Top Header", tech: "Linux Kernel Virtual 5G User Plane Function Interface", means: "The actual network interface inside the Ubuntu VM that carries 5G N3 tunnel traffic and where Linux 'tc netem' delays and packet loss are injected." },
+    { term: "SLA: 30.0 ms & COMPLIANCE: %", cat: "HEADER", panel: "Top Header", tech: "Service Level Agreement Deadline & Pass Ratio", means: "30.0 milliseconds is the maximum allowed round-trip time for safety-critical industrial control. Compliance shows the percentage of time your system has stayed under that 30ms limit." },
+
+    // PANEL 01: UL_TELEMETRY_LINK & RADIO PHY
+    { term: "UL_RTT (T_UL) & Y-Axis Scale (0ms–75ms)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Uplink Round-Trip Time (Milliseconds)", means: "How many milliseconds it takes for a telemetry packet to travel from the sensor to the MEC server and acknowledge back. The left Y-axis marks 0ms to 75ms, and hovering any bar shows its exact ms and timestamp." },
+    { term: "X-Axis Time Horizon (-16s to NOW)", cat: "P01", panel: "01: ul_telemetry_link", tech: "90-Sample Rolling Telemetry Window (180ms/tick)", means: "The bottom horizontal axis shows the last 16 seconds of live network history scrolling from right (NOW) to left (-16s)." },
+    { term: "peak: ms", cat: "P01", panel: "01: ul_telemetry_link", tech: "Maximum Recorded RTT Watermark", means: "The highest latency spike recorded since you opened the dashboard." },
+    { term: "30.0ms URLLC SLA LIMIT (Red Dashed Line)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Hard Real-Time Latency Ceiling", means: "The red horizontal line across the oscilloscope graph. Bars staying below this line meet the 5G industrial deadline; red bars shooting above it indicate an SLA violation." },
+    { term: "JITTER (ms)", cat: "P01", panel: "01: ul_telemetry_link", tech: "RFC 3550 Inter-Packet Arrival Variance", means: "Measures how unstable or jumpy your ping is from one moment to the next. Low jitter (~0.5–1.5ms) means a steady connection; high jitter means erratic lag spikes." },
+    { term: "MEC_Infer (ms)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Edge DSP & Kinematic Feature Extraction Time", means: "How many milliseconds the MEC server's CPU spent unpacking and analyzing the latest batch of vibration data." },
+    { term: "poll: 16ms (60Hz)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Sensor Telemetry Sampling Period", means: "60 updates per second equals one packet every 16.6 milliseconds." },
+    { term: "gNB-N78-MEC01 & 256-QAM", cat: "P01", panel: "01: ul_telemetry_link", tech: "5G gNodeB Base Station ID & Quadrature Amplitude Modulation", means: "Identifies the 5G cell radio tower node and shows that the radio signal is clear enough to pack 8 bits of data per radio symbol (256-QAM)." },
+    { term: "RSRP / SINR (-76dBm / 26.4dB)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Reference Signal Received Power & Signal-to-Interference-plus-Noise Ratio", means: "Measures 5G signal strength (-76dBm is strong) and signal clarity above background noise (26.4dB is very clean)." },
+    { term: "NR Band / SCS (n78 3.5G / 30kHz)", cat: "P01", panel: "01: ul_telemetry_link", tech: "5G New Radio C-Band & Subcarrier Spacing", means: "Band n78 (3.5 GHz) is the standard high-speed 5G frequency band used in private industrial 5G networks, operating with 30 kHz subcarrier spacing." },
+    { term: "Active 5QI (5QI-9 vs. 5QI-80)", cat: "P01", panel: "01: ul_telemetry_link", tech: "3GPP 5G QoS Identifier Priority Class", means: "The priority tag on your network packets: 5QI-9 is normal best-effort traffic (eMBB), while 5QI-80 is high-priority, low-latency industrial traffic (URLLC)." },
+    { term: "Packet Loss (%)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Kernel Netem Dropped Packet Percentage", means: "The percentage of network packets lost in transit on interface upf0 (0% on Clean 5G, 0.8% on Handover, 3.8% on mmWave Blockage)." },
+    { term: "Codec Frame: RAW_FP32 (1.42KB) vs. INT8_DELTA (0.18KB)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Telemetry Payload Serialization Format", means: "Shows how each sensor packet is encoded: RAW_FP32 sends full 32-bit numbers (1.42 KB per frame), while INT8_DELTA compresses changes into 8-bit integers (0.18 KB per frame) to save bandwidth." },
+    { term: "PRB Alloc (48 / 106 vs. 12 / 106 PRBs)", cat: "P01", panel: "01: ul_telemetry_link", tech: "Physical Resource Block Radio Allocation", means: "How many slices of the 5G radio tower's 106 frequency blocks your stream is using. Compressing to URLLC-COMPACT frees up 36 radio blocks for other machines." },
+    { term: "MIMO Layers (4x4 UL-MIMO) & HARQ Retx", cat: "P01", panel: "01: ul_telemetry_link", tech: "Multiple-Input Multiple-Output & Hybrid Automatic Repeat Request", means: "Indicates 4 parallel antenna streams between device and tower, and whether corrupted radio frames had to be re-sent." },
+    { term: "QoS Switches", cat: "P01", panel: "01: ul_telemetry_link", tech: "Closed-Loop State Transition Counter", means: "Counts how many times Auto-QoS has automatically switched slices to protect your 30ms SLA during this session." },
+
+    // PANEL 02: KONSOLE & AUDIT
+    { term: "0:audit_log", cat: "P02", panel: "02: konsole_&_audit", tech: "Real-Time Event & QoS State Chronology", means: "A live timestamped log recording every Auto-QoS switch, Linux kernel traffic command, and Gemini AI report." },
+    { term: "1:upf0_tc", cat: "P02", panel: "02: konsole_&_audit", tech: "Live Linux Kernel Traffic Control Inspector", means: "Runs 'tc -s qdisc show dev upf0' and 'ip -s -br link show dev upf0' on the Ubuntu VM so you can see the exact kernel delay rules and packet counters." },
+    { term: "2:ssh (100.73.187.15)", cat: "P02", panel: "02: konsole_&_audit", tech: "Authenticated Interactive /bin/bash Web Shell", means: "A real password-protected bash terminal connected to your Ubuntu MEC VM over Tailscale. Supports Up/Down command history, sudo commands, and one-click TC buttons." },
+    { term: "[f] Fullscreen & BASH Quick Buttons", cat: "P02", panel: "02: konsole_&_audit", tech: "Full-Viewport Terminal Modal & Command Macros", means: "Expands the terminal across your entire screen and provides one-click buttons to inject or clear Linux kernel network delays without typing long commands." },
+
+    // PANEL 03: NETEM_CTRL
+    { term: "netem_ctrl ([1-4] inject)", cat: "P03", panel: "03: netem_ctrl", tech: "Linux Kernel Network Emulator (tc qdisc netem)", means: "Lets you inject real-world 5G radio problems directly into the Ubuntu kernel's upf0 network interface using keys [1], [2], [3], or [4]." },
+    { term: "[1] Clean 5G NR (11ms | 0%)", cat: "P03", panel: "03: netem_ctrl", tech: "sudo tc qdisc del dev upf0 root", means: "Deletes all artificial delays on upf0 so traffic flows at native ~11ms speed with 0% packet loss." },
+    { term: "[2] gNB Handover (+28ms ±9m)", cat: "P03", panel: "03: netem_ctrl", tech: "netem delay 28ms 9ms loss 0.8%", means: "Emulates a mobile robot or vehicle switching from one 5G tower to another, adding 28ms delay, ±9ms jitter, and 0.8% packet loss." },
+    { term: "[3] mmWave Block (+56ms 3.8%)", cat: "P03", panel: "03: netem_ctrl", tech: "netem delay 56ms 18ms loss 3.8%", means: "Emulates a physical obstacle (like a factory crane or wall) blocking a high-frequency 5G signal, adding 56ms delay and 3.8% packet loss." },
+    { term: "[4] PRB Congest (150k +38m)", cat: "P03", panel: "03: netem_ctrl", tech: "netem rate 150kbit delay 38ms 12ms", means: "Chokes the 5G interface down to 150 kbps with 38ms delay, simulating a crowded cell tower where uncompressed 681 kbps traffic will severely jam unless compressed." },
+    { term: "qdisc / profile / rate", cat: "P03", panel: "03: netem_ctrl", tech: "Active Queuing Discipline Summary", means: "Shows which network interface (upf0), impairment profile ([1]-[4]), and sensor encoding rate (60Hz FP32 vs 15Hz INT8) are active right now." },
+
+    // PANEL 04: MEC_PIPELINE
+    { term: "C0 upf_rx / C1 fft_dsp / C2 sla_ctl", cat: "P04", panel: "04: mec_pipeline", tech: "Per-Core Ubuntu VM CPU Utilization (psutil)", means: "Real-time CPU load read directly from the Ubuntu server's processor cores handling packet reception (C0), vibration math (C1), and SLA control (C2)." },
+    { term: "UL_RX BW & BW Saved (93.5% SAVED)", cat: "P04", panel: "04: mec_pipeline", tech: "Uplink Bitrate & Payload Compression Ratio", means: "Shows live network bandwidth used by the sensor (681.6 Kbps in 60Hz FP32 mode vs. 44.2 Kbps in 15Hz INT8 mode—saving 93.5% of wireless bandwidth)." },
+    { term: "1.NR_Air_UL / 2.UPF_Queue / 3.MEC_Infer / 4.DL_QoS_Ack", cat: "P04", panel: "04: mec_pipeline", tech: "End-to-End (E2E) Latency Component Breakdown", means: "Breaks down the total round-trip time into 4 stages: 5G radio air travel (1), waiting in the upf0 kernel queue (2), server CPU analysis (3), and sending the reply back (4)." },
+    { term: "E2E LOOP: ms / 30ms [OK / BREACH]", cat: "P04", panel: "04: mec_pipeline", tech: "Total Closed-Loop Control Cycle Time", means: "The sum of all 4 latency stages compared against the 30.0ms safety limit." },
+
+    // PANEL 05: MEC_GENAI_OPS
+    { term: "mec_genai_ops & Model Selector", cat: "P05", panel: "05: mec_genai_ops", tech: "Google Gemini REST API Incident Synthesizer", means: "Lets you choose among the 4 verified lightweight AI models (gemini-3.1-flash-lite, preview, 3.5-flash-lite, gemma-4-26b-a4b-it) to analyze live system faults." },
+    { term: "(LIVE API) Badge & AI: ms", cat: "P05", panel: "05: mec_genai_ops", tech: "Verified Cloud API Response & Inference Latency", means: "Confirms the diagnosis was freshly generated by Google's Gemini API using your .env key, along with how many milliseconds the AI took to reply." },
+    { term: "◀ 1/N ▶ History Arrows", cat: "P05", panel: "05: mec_genai_ops", tech: "Persistent LocalStorage Report Ring Buffer", means: "Lets you step backward and forward through up to 50 previously generated AI incident reports even after refreshing the page." },
+
+    // PANEL 06: MEC_NODE_TELEMETRY / UE_IMU_STREAM
+    { term: "[s] Shake UE (Anomaly)", cat: "P06", panel: "06: mec_node_telemetry", tech: "Kinematic Impulse & GenAI Trigger", means: "Simulates a sudden physical shock/vibration spike on the equipment and immediately triggers a live Gemini AI incident report." },
+    { term: "MEC_RAM_USAGE (VM RAM)", cat: "P06", panel: "06: mec_node_telemetry", tech: "psutil.virtual_memory().percent", means: "Live percentage of RAM currently used on your Ubuntu 22.04 MEC server VM (shown when no phone is connected)." },
+    { term: "MEC_LOAD_AVG (upf0 Pkts)", cat: "P06", panel: "06: mec_node_telemetry", tech: "os.getloadavg()[0] & psutil.net_io_counters", means: "Shows the Linux kernel's 1-minute system load average alongside the total number of packets transmitted across the upf0 5G interface." },
+    { term: "NODE_TEMP (Thermal)", cat: "P06", panel: "06: mec_node_telemetry", tech: "/sys/class/thermal/thermal_zone*/temp", means: "Live temperature of the MEC server hardware in degrees Celsius compared against the 45°C thermal throttling threshold." },
+    { term: "MEC_HOST_CPU_LOAD / MEC_ANOMALY_SCORE", cat: "P06", panel: "06: mec_node_telemetry", tech: "Host CPU Load % vs. Kinematic Vibration Anomaly %", means: "Shows overall server CPU usage when idle, or switches to a 0–99% mechanical fault severity score when your phone is streaming motion data." },
+    { term: "ACC_X / ACC_Y (Shear) & VIB_G_FORCE (Shock)", cat: "P06", panel: "06: mec_node_telemetry", tech: "HTML5 DeviceMotionEvent Accelerometer Vectors", means: "Appears when your phone connects to /phone: shows real-time side-to-side acceleration (m/s²) and total G-force vibration shock from shaking your phone." },
+    { term: "HOST / TS_IP / LAB_IP / UE (/phone)", cat: "P06", panel: "06: mec_node_telemetry", tech: "Node Network Addressing Register", means: "Quick reference showing the VM hostname (user@user), Tailscale IP (100.73.187.15), local 5G lab IP (172.16.0.5), and the /phone link for connecting a mobile device." }
+  ];
+
+  let currentDocsCat = 'ALL';
+
+  function hideTtyHoverCard() {
+    const card = document.getElementById('ttyHoverCard');
+    if (card) card.classList.remove('visible');
+  }
+
+  function showTtyHoverCard(cat, anchorEl) {
+    const info = PANEL_SUMMARIES[cat];
+    const card = document.getElementById('ttyHoverCard');
+    if (!info || !card || !anchorEl) return;
+
+    document.getElementById('ttyHoverTitle').textContent = info.title;
+    document.getElementById('ttyHoverDesc').textContent = info.desc;
+    document.getElementById('ttyHoverRole').textContent = info.role;
+    card.classList.add('visible');
+
+    const rect = anchorEl.getBoundingClientRect();
+    const cardW = 310;
+    const cardH = card.offsetHeight || 135;
+
+    let left = rect.right - cardW;
+    if (left < 8) left = 8;
+    if (left + cardW > window.innerWidth - 8) left = window.innerWidth - cardW - 8;
+
+    let top = rect.bottom + 6;
+    if (top + cardH > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - cardH - 6);
+    }
+
+    card.style.left = `${left}px`;
+    card.style.top = `${top}px`;
+  }
+
+  function openTuiDocs(category) {
+    hideTtyHoverCard();
+    if (category) currentDocsCat = category;
+    const modal = document.getElementById('tuiDocsModal');
+    modal.classList.add('open');
+    updateDocsFilterButtons();
+    renderDocsContent();
+    const body = document.getElementById('docsScrollBody');
+    if (body) body.scrollTop = 0;
+  }
+
+  function closeTuiDocs() {
+    document.getElementById('tuiDocsModal').classList.remove('open');
+  }
+
+  function setDocsCategory(cat) {
+    currentDocsCat = cat;
+    updateDocsFilterButtons();
+    renderDocsContent();
+    const body = document.getElementById('docsScrollBody');
+    if (body) body.scrollTop = 0;
+  }
+
+  function clearDocsSearch() {
+    const inp = document.getElementById('docsSearchInput');
+    inp.value = '';
+    renderDocsContent();
+    inp.focus();
+  }
+
+  function updateDocsFilterButtons() {
+    document.querySelectorAll('#docsFilterBar .docs-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-cat') === currentDocsCat);
+    });
+  }
+
+  function renderDocsContent() {
+    const query = (document.getElementById('docsSearchInput').value || '').trim().toLowerCase();
+    const archSec = document.getElementById('docsArchSection');
+    const focusBanner = document.getElementById('docsPanelFocusBanner');
+
+    // Show Focused Panel Banner when a specific panel (P01-P06 or HEADER) is selected
+    if (PANEL_SUMMARIES[currentDocsCat]) {
+      const pInfo = PANEL_SUMMARIES[currentDocsCat];
+      focusBanner.style.display = 'flex';
+      document.getElementById('focusBannerTitle').textContent = pInfo.title;
+      document.getElementById('focusBannerDesc').textContent = pInfo.desc;
+      document.getElementById('focusBannerRole').textContent = `Operational Role: ${pInfo.role}`;
+    } else {
+      focusBanner.style.display = 'none';
+    }
+
+    if (currentDocsCat === 'ALL' || currentDocsCat === 'ARCH') {
+      if (!query || archSec.textContent.toLowerCase().includes(query)) {
+        archSec.style.display = 'flex';
+      } else {
+        archSec.style.display = 'none';
+      }
+    } else {
+      archSec.style.display = 'none';
+    }
+
+    const filtered = TUI_DICTIONARY.filter(item => {
+      const catMatch = (currentDocsCat === 'ALL' || currentDocsCat === 'ARCH') ? true : (item.cat === currentDocsCat);
+      if (!catMatch) return false;
+      if (!query) return true;
+      const hay = `${item.term} ${item.panel} ${item.tech} ${item.means}`.toLowerCase();
+      return hay.includes(query);
+    });
+
+    document.getElementById('dictMatchCount').textContent = filtered.length;
+    const grid = document.getElementById('docsDictGrid');
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div style="color:var(--text-muted);padding:12px;">No matching keywords found for "${escapeHtml(query)}". Try clearing the search or switching category to ALL.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(item => `
+      <div class="dict-card">
+        <div class="dict-card-hdr">
+          <span class="dict-term">${escapeHtml(item.term)}</span>
+          <span class="dict-badge">${escapeHtml(item.panel)}</span>
+        </div>
+        <div class="dict-tech"><strong>Tech:</strong> ${escapeHtml(item.tech)}</div>
+        <div class="dict-means"><strong style="color:var(--cyan);">Means:</strong> ${escapeHtml(item.means)}</div>
+      </div>
+    `).join('');
+  }
+
+  // Attach [?] buttons with Custom TTY Hover Summary + Click-to-Docs
+  (function attachPanelHelpButtons() {
+    const map = [
+      { id: 'panel1', cat: 'P01' },
+      { id: 'panelKonsole', cat: 'P02' },
+      { id: 'panel3', cat: 'P03' },
+      { id: 'panel4', cat: 'P04' },
+      { id: 'panel5', cat: 'P05' },
+      { id: 'panelNode', cat: 'P06' }
+    ];
+    map.forEach(({ id, cat }) => {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      const hdr = sec.querySelector('.panel-hdr');
+      if (!hdr) return;
+      const oldBtn = hdr.querySelector('.panel-help-btn');
+      if (oldBtn) oldBtn.remove();
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'panel-help-btn';
+      btn.textContent = '[?]';
+      btn.addEventListener('mouseenter', () => showTtyHoverCard(cat, btn));
+      btn.addEventListener('mouseleave', hideTtyHoverCard);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openTuiDocs(cat);
+      });
+      hdr.appendChild(btn);
+    });
+  })();
+
+  window.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('tuiDocsModal');
+    const isOpen = modal && modal.classList.contains('open');
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    const inInput = (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA');
+
+    if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
+      closeTuiDocs();
+      return;
+    }
+
+    if (isOpen && e.key === '/' && !inInput) {
+      e.preventDefault();
+      document.getElementById('docsSearchInput').focus();
+      return;
+    }
+
+    if (!inInput && (e.key === 'd' || e.key === 'D' || e.key === '?')) {
+      e.preventDefault();
+      if (isOpen) closeTuiDocs();
+      else openTuiDocs('ALL');
+    }
+  });
+</script>
+<!-- END TUI DOCS ENGINE -->
+</body>
+</html>
