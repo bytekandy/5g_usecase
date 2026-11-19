@@ -1,94 +1,171 @@
-# ⚡ EDGE-CTL // 5G MEC Closed-Loop SLA & GenAI Operations Center
+# ⚡ EDGE-CTL // 5G MEC Real-Time Hardware Telemetry & Anomaly Monitoring Center
 
-> **Real-Time 5G N3 (`upf0`) Kernel Traffic Shaping, Sub-Second Closed-Loop Slice Adaptation (`eMBB` <-> `URLLC`), Dual-Source Hardware Telemetry, and State-Aware Gemini Edge-AI Incident Synthesis.**
-
----
-
-## 📌 1. The Engineering Problem: The 5G Edge Telemetry Paradox
-
-In mission-critical **Industry 4.0** and **Private 5G (Band n78)** deployments, industrial sensors stream high-frequency, uncompressed kinematic telemetry (**60Hz `RAW_FP32` at 681.6 Kbps**) over a standard **5G eMBB (`5QI-9`)** slice to maximize diagnostic precision at the Multi-Access Edge Computing (MEC) server.
-
-* **Open-Loop Failure (`Auto-QoS: OFF`):** Real-world wireless channels suffer from transient **gNodeB handovers (`+28ms`)**, **mmWave NLOS blockage (`+56ms`)**, and **PRB cell congestion (`150kbit` rate cap)**. Under Open-Loop operation, an unthrottled 60Hz `FP32` sensor continues flooding the degraded radio link, causing severe **UPF N3 (`upf0`) kernel queue bufferbloat**. Uplink Round-Trip Time (`UL_RTT`) spikes to **49.5 ms – 125.4 ms**, violating the hard **30.0 ms URLLC safety SLA**.
-* **Closed-Loop MEC Solution (`Auto-QoS: ON`):** `EDGE-CTL` continuously monitors the Linux kernel `upf0` N3 tunnel and live WebSocket RTT. When `UL_RTT` breaches **30.0 ms** for 2 consecutive ticks, the MEC controller dispatches a sub-second downlink command over `/ws/ue`, shifting the active slice to **`URLLC-COMPACT` (`15Hz INT8_DELTA`, `5QI-80`)**. This slashes uplink bitrate by **93.5%** (`681.6 Kbps` -> `44.2 Kbps`), drains the `upf0` packet queue, and pulls latency back down to **~18–19 ms (`<30.0 ms SLA COMPLIANT`)** while the physical channel impairment remains active.
+> **Real-Time Industrial Hardware Telemetry & Fault Monitoring over Private 5G MEC — combining dual-source hardware sensing (60Hz Smartphone IMU + Ubuntu MEC Server telemetry), Gemini Edge-AI root-cause diagnostics, isolated Linux kernel `upf0` traffic emulation (`tc netem`), and automatic QoS protection (`<30.0 ms` URLLC SLA).**
 
 ---
 
-## 🏭 2. Real-World (IRL) Deployment Scenarios
+## 📌 1. Project Overview: Why 5G Hardware Telemetry Monitoring?
 
-| Scenario | Edge Sensor Node (`/phone`) | 5G Channel Impairment (`upf0`) | Closed-Loop MEC Action (`<30ms SLA`) |
-| :--- | :--- | :--- | :--- |
-| **A. Smart Factory CNC Spindle & Robotic Interlock** | 60Hz triaxial vibration & shear sensor mounted on a CNC milling spindle or 6-axis robotic arm | `[3] mmWave Block` (`+56ms` delay, `3.8%` loss) from moving overhead factory cranes | Compresses stream to `15Hz INT8` (`5QI-80`) so `>0.50g` bearing-chatter alerts trigger PLC feed-hold in `<30ms` |
-| **B. Autonomous Warehouse AMR / AGV Fleet** | 60Hz kinematic odometry & shock sensor on roaming mobile robots | `[2] gNB Handover` (`+28ms`, `±9ms` jitter) & `[4] PRB Congest` (`150kbit` cap) | Prevents UPF packet queue stalls during cell handovers so collision-avoidance braking stays deterministic |
-| **C. 5G Cell-Site MEC Micro-Datacenter** | Ruggedized Ubuntu MEC server (`172.16.0.5`) + rack seismic sensor | N3 GTP-U backhaul congestion & thermal/CPU load spikes | Correlates VM RAM, kernel load, thermal zones, and `upf0` packet counters with live `/bin/bash` SSH remediation |
+In modern **Industry 4.0** factories, autonomous warehouses, and edge micro-datacenters, critical hardware (CNC spindles, robotic arms, mobile robots, and server racks) must be monitored continuously for mechanical shock, abnormal vibration, overheating, or compute overload.
 
----
+`EDGE-CTL` is a **5G Multi-Access Edge Computing (MEC) Hardware Telemetry Monitoring Center** deployed on an Ubuntu 22.04 MEC server. It provides:
 
-## 🖥️ 3. 6-Panel Monochrome TTY Architecture
-
-The dashboard is engineered with a zero-dependency **Pure TTY Pitch-Black (`#000000`) & Crisp ANSI Terminal** layout (`100vh` locked grid):
-
-1. **`01 // ul_telemetry_link` (5G N3 RTT Oscilloscope & Radio PHY):**
-   * High-DPI rolling 16-second (`90-sample`) oscilloscope with **Y-Axis Latency (`0ms–75ms`)**, **X-Axis Time (`-16s` to `NOW`)**, interactive mouse-hover crosshair readouts, and `gNB-N78-MEC01` PHY parameters (`RSRP/SINR`, `256-QAM`, `5QI`, `PRB Alloc`, `4x4 UL-MIMO`).
-2. **`02 // konsole_&_audit` (Full-Height Audit Stream, Kernel TC & Interactive `/bin/bash` SSH):**
-   * **`0:audit_log`:** Real-time chronology of Auto-QoS adaptations, kernel netem injections, and AI syntheses.
-   * **`1:upf0_tc`:** Live output of `tc -s qdisc show dev upf0` and `ip -s -br link show dev upf0`.
-   * **`2:ssh (100.73.187.15)`:** Password-authenticated interactive `/bin/bash` shell on the Ubuntu MEC VM with command history (`Up`/`Down`), fullscreen mode (`[f]`), and one-click `tc netem` macro buttons.
-3. **`03 // netem_ctrl` (Linux Kernel `upf0` Impairment Injector):**
-   * Executes real `sudo tc qdisc replace dev upf0 root netem ...` rules inside the Linux kernel across 4 presets (`[1]` Clean 5G, `[2]` gNB Handover, `[3]` mmWave Block, `[4]` PRB Congest).
-4. **`04 // mec_pipeline` (Edge Compute, Bitrate Savings & E2E Loop):**
-   * Tracks per-core Ubuntu VM CPU load (`C0 upf_rx`, `C1 fft_dsp`, `C2 sla_ctl`), wireless bandwidth savings (`93.5% SAVED`), and 4-stage E2E latency breakdown (`NR_Air_UL`, `UPF_Queue`, `MEC_Infer`, `DL_QoS_Ack`).
-5. **`05 // mec_genai_ops` (State-Aware Gemini Incident Synthesizer):**
-   * Connects to Google's lightweight models (`gemini-3.1-flash-lite`, `gemini-3.1-flash-lite-preview`, `gemini-3.5-flash-lite`, `gemma-4-26b-a4b-it`) to synthesize a 3-sentence operator diagnosis with persistent `◀ 1/N ▶` report history.
-6. **`06 // mec_node_telemetry` / `ue_imu_stream` (Dual-Source Hardware Telemetry):**
-   * Automatically switches between **Ubuntu MEC VM Host Telemetry** (`MEC_RAM_USAGE`, `MEC_LOAD_AVG`, `upf0 Pkts`, `NODE_TEMP`, `CPU_LOAD`) when idle and **Live 60Hz Smartphone IMU Telemetry** (`ACC_X/Y` shear, `VIB_G_FORCE` shock, `MEC_ANOMALY_SCORE`) when a phone connects to `/phone`.
-7. **`TUI-DOCS // README.md` (`[d]` or `[?]`):**
-   * Built-in fullscreen documentation viewer with per-panel hover summaries (`[?]`) and an instant keyword search engine covering all 48 metrics and acronyms.
+1. **High-Resolution Dual-Source Monitoring:** Ingests live **60Hz** physical vibration/acceleration telemetry from a connected 5G hardware node (`/phone`) alongside live MEC server hardware metrics (`psutil` CPU cores, RAM usage, kernel load average, thermal zones, and `upf0` packet counters).
+2. **Real-Time Anomaly Detection & Edge-AI Diagnostics:** Continuously evaluates vibration G-force, thermal thresholds, and compute load. Whenever an anomaly crosses its safety threshold (or manually via `[g]` / `[s]`), live telemetry is sent to **Google Gemini (`gemini-3.1-flash-lite`)** to generate a concise 3-sentence root-cause diagnosis and remediation step.
+3. **Resilient 5G Transport (Adaptive QoS):** Keeps telemetry flowing under the **30.0 ms URLLC deadline** even when real-world 5G impairments—**gNodeB handovers**, **mmWave blockage**, or **cell PRB congestion**—degrade the wireless link.
 
 ---
 
-## ⌨️ 4. Keyboard Shortcuts & Controls
+## 🏭 2. Real-World (IRL) Industrial Use Cases
 
-| Shortcut | Action |
-| :---: | :--- |
-| **`[1]`** | Apply Profile `[1] Clean 5G NR LOS` (`sudo tc qdisc del dev upf0 root`) |
-| **`[2]`** | Inject Profile `[2] gNB Handover Spike` (`+28ms` delay, `±9ms` jitter, `0.8%` loss) |
-| **`[3]`** | Inject Profile `[3] mmWave NLOS Blockage` (`+56ms` delay, `±18ms` jitter, `3.8%` loss) |
-| **`[4]`** | Inject Profile `[4] Slice PRB Congestion` (`150kbit` rate cap, `+38ms` delay) |
-| **`[c]`** | Toggle **Closed-Loop Auto-QoS** (`ON: ACTIVE` <-> `OFF: OPEN-LOOP`) |
-| **`[s]`** | Trigger High-G Kinematic Vibration Anomaly + Synthesize Live Gemini Report |
-| **`[g]`** | Run Manual **Gemini Edge-AI Incident Report** on Current Telemetry Snapshot |
-| **`[k]`** | Switch Panel 02 between `1:upf0_tc` and `2:ssh` Interactive Terminal |
-| **`[f]`** | Toggle Fullscreen Terminal Modal (`Esc` to exit) |
-| **`[d]` / `[?]`** | Open Fullscreen **TUI Docs & Interactive Keyword Search** (`/` to search) |
-| **`[SPACE]`** | Pause / Resume Real-Time Telemetry Oscilloscope |
+| Deployment Scenario                            | Monitored Hardware Node                                                               | Critical Telemetry & Anomalies                                                  | Role of 5G MEC + Adaptive QoS                                                                                     |
+| :--------------------------------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------- |
+| **A. Smart Factory CNC Spindle & Robotic Arm** | 60Hz triaxial vibration & shear sensor mounted on a CNC spindle or 6-axis welding arm | Bearing chatter / mechanical shock (`>0.50g`), motor thermal drift              | Compresses telemetry during crane-induced **mmWave Blockage (`[3]`)** so emergency PLC feed-hold stays `<30.0 ms` |
+| **B. Autonomous Warehouse AMR / AGV Fleet**    | Roaming mobile robots streaming 60Hz kinematic odometry                               | Floor-impact shock, sudden deceleration shear (`ACC_X/Y`)                       | Prevents UPF packet queue stalls during **gNB Cell Handovers (`[2]`)** and **Cell Congestion (`[4]`)**            |
+| **C. 5G Cell-Site MEC Micro-Datacenter**       | Ruggedized Ubuntu MEC server (`172.16.0.5`) + rack seismic sensor                     | Server RAM, per-core CPU load, thermal throttling (`>45°C`), `upf0` queue drops | Correlates OS/kernel health with physical chassis shock and enables live `/bin/bash` remediation via built-in SSH |
 
 ---
 
-## 🚀 5. Quick Start & Installation
+## ❓ 3. Architecture & Technical Q&A
 
-### 1. Clone & Configure Environment
-```bash
-git clone <YOUR_GITHUB_REPO_URL>
-cd 5g_usecase
+### Q1. Why didn't we use the Anubhav board, and how does the 5G smartphone replace it?
+
+- **Limitations of the Anubhav Board:** During testing, the Anubhav board exhibited uplink instability when transmitting live hardware telemetry back to the MEC server. More importantly, it introduces a **middleman bottleneck** for adaptive control: when the MEC server commands a rate/encoding change (`60Hz FP32` → `15Hz INT8`), the command travels to the Anubhav board first, which must then forward it over serial/UART to the attached hardware before the sensor reconfigures. That extra relay hop adds latency overhead and produces stale telemetry packets during fast anomalies.
+- **1-to-1 Replacement with a 5G Smartphone UE (`/phone`):** A 5G smartphone already integrates both a **native 5G modem** and **calibrated built-in MEMS sensors** (triaxial accelerometer + gyroscope), removing external sensor wiring and eliminating the middleman relay. Downlink adaptation commands arrive directly at the sensor loop over WebSockets (`/ws/ue`).
+- **Mapping to Production Hardware:** In an actual factory deployment, the smartphone is simply replaced by an industrial sensor module with an onboard 5G modem hardwired directly to the MEMS transducer—running the exact same `/ws/ue` WebSocket protocol.
+
+### Q2. How does the phone connect to the server and stream real (non-synthetic) hardware data?
+
+1. The smartphone opens `http://<MEC_SERVER_IP>:8000/phone` (over LAN `172.16.0.5` or peer-to-peer Tailscale mesh `100.73.187.15`).
+2. Tapping **START 60Hz 5G SENSOR STREAM TO MEC** registers the browser's hardware **`DeviceMotionEvent`** listener (`accelerationIncludingGravity` for `ax, ay, az` and `rotationRate` for `gx, gy, gz`) and opens a full-duplex WebSocket to **`/ws/ue`**.
+3. On the server (`mec_server.py`), `ue_stream_ws` registers the active phone in `ue_clients`, switching Panel 06 from Ubuntu VM host stats (`mec_node_telemetry`) to live mobile sensor vectors (`ue_imu_stream`). Physically shaking the phone immediately spikes `ACC_X/Y` and `VIB_G_FORCE` in real time.
+
+### Q3. Why not keep the sensor in compressed `15Hz INT8` mode all the time?
+
+Compressed `15Hz INT8_DELTA` cuts bandwidth by **93.5%** (`681.6 Kbps` → `44.2 Kbps`), which is ideal for surviving wireless congestion—but quantization to 8-bit integers and downsampling to 15Hz discards fine-grained high-frequency vibration signatures needed for early mechanical fault detection. By staying on **`eMBB-HIGH` (`60Hz RAW_FP32`, `5QI-9`)** whenever the 5G link is healthy (`<30 ms`), operators get full diagnostic fidelity and only trade resolution for survival during active radio impairments.
+
+### Q4. What is the difference between Open-Loop and Closed-Loop (Auto-QoS) operation?
+
+| Mode            | Toggle (`[c]`)  | Behavior Under 5G Impairments (`[2]`–`[4]`)                                                                         | Result on `UL_RTT` & Bandwidth                                                                                                                                    |
+| :-------------- | :-------------: | :------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Open-Loop**   | `Auto-QoS: OFF` | Sensor blindly keeps blasting `60Hz RAW_FP32` (`681.6 Kbps`) into a degraded/congested pipe                         | `upf0` queue overflows (bufferbloat); RTT spikes to **`49–125 ms`** (**SLA Breach**)                                                                              |
+| **Closed-Loop** | `Auto-QoS: ON`  | After 2 ticks `>30.0 ms`, MEC server sends downlink `{target_hz: 15, codec: "INT8_DELTA"}` (`5QI-80`) over `/ws/ue` | Bandwidth drops **93.5%** (`44.2 Kbps`), queue drains, RTT recovers to **`~18–20 ms`** (**SLA Compliant**). Auto-restores `60Hz FP32` once channel clears (`[1]`) |
+
+### Q5. How is `upf0` configured without disrupting the server's real network, and how is `tc netem` run securely?
+
+- **Isolated Virtual N3 Interface (`upf0`):** Instead of applying `tc netem` delays to `eth0` or `tailscale0` (which would lag SSH and the web UI itself), we load Linux kernel modules `dummy` and `sch_netem` to create an isolated virtual 5G User Plane Function interface **`upf0`** (`10.45.0.1/24`). All kernel packet-delay, jitter, loss, and rate-cap rules execute strictly on `upf0`.
+- **Least-Privilege `sudo`:** Rather than running FastAPI as `root`, the service runs as unprivileged user `user` and uses `/etc/sudoers.d/mec-tc` to permit passwordless `sudo -n` **exclusively** for `/sbin/tc` and `/usr/sbin/tc`.
+
+### Q6. How does the Gemini Edge-AI Incident Synthesizer work?
+
+When vibration/anomaly scores cross the safety threshold (or when the operator presses `[g]` or `[s]`), `mec_server.py` sends a structured snapshot—data source (Phone IMU vs. Host VM), G-force shock, thermal °C, RAM/CPU load, active `tc netem` profile, `upf0` RTT, and slice mode—to Google's Gemini REST API (`gemini-3.1-flash-lite` with automatic model failover). The state-aware prompt ensures Gemini never gives contradictory advice (e.g., it confirms `eMBB-HIGH` is optimal at `10 ms`, flags Open-Loop breaches when `Auto-QoS` is OFF, and confirms mitigation when `URLLC-COMPACT` is active).
+
+---
+
+## 🖥️ 4. 6-Panel Monochrome TTY Operations Dashboard
+
+1. **`01 // ul_telemetry_link`:** High-DPI 16-second rolling RTT oscilloscope with **Y-Axis Latency (`0–75 ms`)**, **X-Axis Time (`-16s` to `NOW`)**, interactive hover crosshair, `30.0 ms` SLA line, and `gNB-N78-MEC01` PHY telemetry (`RSRP/SINR`, `256-QAM`, `5QI`, `PRB Alloc`, `4x4 UL-MIMO`).
+2. **`02 // konsole_&_audit`:** 3-tab operational terminal: `0:audit_log` (QoS & AI chronology), `1:upf0_tc` (live `tc -s qdisc` & `ip -s -br link` stats), and `2:ssh` (password-authenticated interactive `/bin/bash` shell with fullscreen `[f]` and one-click TC macros).
+3. **`03 // netem_ctrl`:** Real Linux kernel `tc qdisc netem` impairment injector (`[1]` Clean 5G, `[2]` gNB Handover `+28ms ±9ms 0.8% loss`, `[3]` mmWave Block `+56ms ±18ms 3.8% loss`, `[4]` PRB Congest `150kbit +38ms ±12ms`).
+4. **`04 // mec_pipeline`:** Per-core Ubuntu VM CPU load (`C0 upf_rx`, `C1 fft_dsp`, `C2 sla_ctl`), uplink bitrate & compression savings (`93.5% SAVED`), and 4-stage E2E loop breakdown (`NR_Air_UL`, `UPF_Queue`, `MEC_Infer`, `DL_QoS_Ack`).
+5. **`05 // mec_genai_ops`:** Live Gemini Edge-AI 3-sentence incident synthesizer with model selector and persistent `◀ 1/N ▶` report history.
+6. **`06 // mec_node_telemetry` / `ue_imu_stream`:** Auto-switching hardware monitor displaying Ubuntu MEC VM host health when idle and live 60Hz smartphone IMU vectors when connected.
+7. **`TUI-DOCS // README.md` (`[d]` / `[?]`):** Fullscreen searchable documentation and 48-term keyword dictionary with per-panel hover summaries.
+
+---
+
+## ⌨️ 5. Keyboard Shortcuts
+
+|        Key        | Action                                                                                                                      |
+| :---------------: | :-------------------------------------------------------------------------------------------------------------------------- |
+| **`[1]` – `[4]`** | Inject Linux kernel `tc netem` 5G channel profile on `upf0` (`[1]` Clean, `[2]` Handover, `[3]` Blockage, `[4]` Congestion) |
+|     **`[c]`**     | Toggle Adaptive QoS (`ON: Closed-Loop` <-> `OFF: Open-Loop`)                                                                |
+|     **`[s]`**     | Inject High-G hardware shock anomaly + trigger Gemini AI report                                                             |
+|     **`[g]`**     | Synthesize an instant Gemini Edge-AI report for the current hardware & network state                                        |
+|     **`[k]`**     | Switch Panel 02 between `1:upf0_tc` and `2:ssh` interactive shell                                                           |
+|     **`[f]`**     | Toggle fullscreen terminal modal (`Esc` to exit)                                                                            |
+| **`[d]` / `[?]`** | Open fullscreen TUI Docs & live keyword search (`/` to search)                                                              |
+|   **`[SPACE]`**   | Pause / Resume oscilloscope graph                                                                                           |
+
+---
+
+## 🚀 6. Complete Installation & Deployment Guide (Ubuntu 22.04 MEC VM)
+
+### Step 1: Clone Repository & Set Up Python Virtual Environment
+
+{F}bash
+git clone https://github.com/bytekandy/5g_usecase.git ~/grp21_usecase
+cd ~/grp21_usecase
+
 python3 -m venv venv
-./venv/bin/pip install fastapi "uvicorn[standard]" websockets psutil python-dotenv
-cp .env.example .env
-# Add your GEMINI_API_KEY inside .env
-```
+source venv/bin/activate
+pip install fastapi "uvicorn[standard]" websockets psutil python-dotenv
+{F}
 
-### 2. Initialize Virtual 5G UPF Interface (`upf0`)
-```bash
+### Step 2: Configure Gemini API Key
+
+{F}bash
+cp .env.example .env
+nano .env
+
+# Set: GEMINI_API_KEY=your_actual_gemini_api_key
+
+{F}
+
+### Step 3: Grant Least-Privilege Passwordless `sudo` for Kernel `tc`
+
+Create `/etc/sudoers.d/mec-tc` so the backend can update `upf0` qdisc rules without running as root:
+{F}bash
+echo "user ALL=(ALL) NOPASSWD: /usr/sbin/tc, /sbin/tc" | sudo tee /etc/sudoers.d/mec-tc
+sudo chmod 440 /etc/sudoers.d/mec-tc
+{F}
+
+### Step 4: Initialize Virtual 5G N3 Interface (`upf0`) Manually (for Testing)
+
+{F}bash
 sudo modprobe dummy
 sudo modprobe sch_netem
 sudo ip link add upf0 type dummy 2>/dev/null || true
 sudo ip addr add 10.45.0.1/24 dev upf0 2>/dev/null || true
 sudo ip link set upf0 up
-```
+{F}
 
-### 3. Run the MEC Operations Server
-```bash
-./venv/bin/uvicorn mec_server:app --host 0.0.0.0 --port 8000
-```
+### Step 5: Deploy as a Persistent `systemd` Service (`mec-server.service`)
 
-* **Main Operations Center:** `http://<MEC_SERVER_IP>:8000` (Tailscale: `http://100.73.187.15:8000` / Lab: `http://172.16.0.5:8000`)
-* **Mobile 60Hz IMU Transmitter:** `http://<MEC_SERVER_IP>:8000/phone`
+Create `/etc/systemd/system/mec-server.service` so `upf0` and Uvicorn start automatically on every boot:
+{F}ini
+[Unit]
+Description=5G MEC Real-Time Hardware Telemetry & GenAI Operations Center
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/grp21_usecase
+EnvironmentFile=-/home/user/grp21_usecase/.env
+ExecStartPre=+/usr/sbin/modprobe dummy
+ExecStartPre=+/usr/sbin/modprobe sch_netem
+ExecStartPre=-+/usr/sbin/ip link add upf0 type dummy
+ExecStartPre=-+/usr/sbin/ip addr add 10.45.0.1/24 dev upf0
+ExecStartPre=+/usr/sbin/ip link set upf0 up
+ExecStart=/home/user/grp21_usecase/venv/bin/uvicorn mec_server:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+{F}
+
+Enable and start the service:
+{F}bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now mec-server.service
+sudo systemctl status mec-server.service
+{F}
+
+### Step 6: Access the Dashboard & Connect the 5G Smartphone UE
+
+- **Operations Dashboard (Browser):** `http://<MEC_SERVER_IP>:8000` (Tailscale: `http://100.73.187.15:8000` | Lab LAN: `http://172.16.0.5:8000`)
+- **Smartphone 60Hz Hardware Transmitter:** `http://<MEC_SERVER_IP>:8000/phone`
+- _(Optional Remote Access)_ Install [Tailscale](https://tailscale.com/) on the MEC VM, laptop, and smartphone to connect over a direct peer-to-peer WireGuard mesh outside the lab network.
