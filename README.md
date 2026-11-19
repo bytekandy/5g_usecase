@@ -18,11 +18,11 @@ In modern **Industry 4.0** factories, autonomous warehouses, and edge micro-data
 
 ## 🏭 2. Real-World (IRL) Industrial Use Cases
 
-| Deployment Scenario                            | Monitored Hardware Node                                                               | Critical Telemetry & Anomalies                                                  | Role of 5G MEC + Adaptive QoS                                                                                     |
-| :--------------------------------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------- |
-| **A. Smart Factory CNC Spindle & Robotic Arm** | 60Hz triaxial vibration & shear sensor mounted on a CNC spindle or 6-axis welding arm | Bearing chatter / mechanical shock (`>0.50g`), motor thermal drift              | Compresses telemetry during crane-induced **mmWave Blockage (`[3]`)** so emergency PLC feed-hold stays `<30.0 ms` |
-| **B. Autonomous Warehouse AMR / AGV Fleet**    | Roaming mobile robots streaming 60Hz kinematic odometry                               | Floor-impact shock, sudden deceleration shear (`ACC_X/Y`)                       | Prevents UPF packet queue stalls during **gNB Cell Handovers (`[2]`)** and **Cell Congestion (`[4]`)**            |
-| **C. 5G Cell-Site MEC Micro-Datacenter**       | Ruggedized Ubuntu MEC server (`172.16.0.5`) + rack seismic sensor                     | Server RAM, per-core CPU load, thermal throttling (`>45°C`), `upf0` queue drops | Correlates OS/kernel health with physical chassis shock and enables live `/bin/bash` remediation via built-in SSH |
+| Deployment Scenario | Monitored Hardware Node | Critical Telemetry & Anomalies | Role of 5G MEC + Adaptive QoS |
+| :--- | :--- | :--- | :--- |
+| **A. Smart Factory CNC Spindle & Robotic Arm** | 60Hz triaxial vibration & shear sensor mounted on a CNC spindle or 6-axis welding arm | Bearing chatter / mechanical shock (`>0.50g`), motor thermal drift | Compresses telemetry during crane-induced **mmWave Blockage (`[3]`)** so emergency PLC feed-hold stays `<30.0 ms` |
+| **B. Autonomous Warehouse AMR / AGV Fleet** | Roaming mobile robots streaming 60Hz kinematic odometry | Floor-impact shock, sudden deceleration shear (`ACC_X/Y`) | Prevents UPF packet queue stalls during **gNB Cell Handovers (`[2]`)** and **Cell Congestion (`[4]`)** |
+| **C. 5G Cell-Site MEC Micro-Datacenter** | Ruggedized Ubuntu MEC server (`172.16.0.5`) + rack seismic sensor | Server RAM, per-core CPU load, thermal throttling (`>45°C`), `upf0` queue drops | Correlates OS/kernel health with physical chassis shock and enables live `/bin/bash` remediation via built-in SSH |
 
 ---
 
@@ -46,10 +46,10 @@ Compressed `15Hz INT8_DELTA` cuts bandwidth by **93.5%** (`681.6 Kbps` → `44.2
 
 ### Q4. What is the difference between Open-Loop and Closed-Loop (Auto-QoS) operation?
 
-| Mode            | Toggle (`[c]`)  | Behavior Under 5G Impairments (`[2]`–`[4]`)                                                                         | Result on `UL_RTT` & Bandwidth                                                                                                                                    |
-| :-------------- | :-------------: | :------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Open-Loop**   | `Auto-QoS: OFF` | Sensor blindly keeps blasting `60Hz RAW_FP32` (`681.6 Kbps`) into a degraded/congested pipe                         | `upf0` queue overflows (bufferbloat); RTT spikes to **`49–125 ms`** (**SLA Breach**)                                                                              |
-| **Closed-Loop** | `Auto-QoS: ON`  | After 2 ticks `>30.0 ms`, MEC server sends downlink `{target_hz: 15, codec: "INT8_DELTA"}` (`5QI-80`) over `/ws/ue` | Bandwidth drops **93.5%** (`44.2 Kbps`), queue drains, RTT recovers to **`~18–20 ms`** (**SLA Compliant**). Auto-restores `60Hz FP32` once channel clears (`[1]`) |
+| Mode | Toggle (`[c]`) | Behavior Under 5G Impairments (`[2]`–`[4]`) | Result on `UL_RTT` & Bandwidth |
+| :--- | :---: | :--- | :--- |
+| **Open-Loop** | `Auto-QoS: OFF` | Sensor blindly keeps blasting `60Hz RAW_FP32` (`681.6 Kbps`) into a degraded/congested pipe | `upf0` queue overflows (bufferbloat); RTT spikes to **`49–125 ms`** (**SLA Breach**) |
+| **Closed-Loop** | `Auto-QoS: ON` | After 2 ticks `>30.0 ms`, MEC server sends downlink `{target_hz: 15, codec: "INT8_DELTA"}` (`5QI-80`) over `/ws/ue` | Bandwidth drops **93.5%** (`44.2 Kbps`), queue drains, RTT recovers to **`~18–20 ms`** (**SLA Compliant**). Auto-restores `60Hz FP32` once channel clears (`[1]`) |
 
 ### Q5. How is `upf0` configured without disrupting the server's real network, and how is `tc netem` run securely?
 
@@ -76,16 +76,16 @@ When vibration/anomaly scores cross the safety threshold (or when the operator p
 
 ## ⌨️ 5. Keyboard Shortcuts
 
-|        Key        | Action                                                                                                                      |
-| :---------------: | :-------------------------------------------------------------------------------------------------------------------------- |
+| Key | Action |
+| :---: | :--- |
 | **`[1]` – `[4]`** | Inject Linux kernel `tc netem` 5G channel profile on `upf0` (`[1]` Clean, `[2]` Handover, `[3]` Blockage, `[4]` Congestion) |
-|     **`[c]`**     | Toggle Adaptive QoS (`ON: Closed-Loop` <-> `OFF: Open-Loop`)                                                                |
-|     **`[s]`**     | Inject High-G hardware shock anomaly + trigger Gemini AI report                                                             |
-|     **`[g]`**     | Synthesize an instant Gemini Edge-AI report for the current hardware & network state                                        |
-|     **`[k]`**     | Switch Panel 02 between `1:upf0_tc` and `2:ssh` interactive shell                                                           |
-|     **`[f]`**     | Toggle fullscreen terminal modal (`Esc` to exit)                                                                            |
-| **`[d]` / `[?]`** | Open fullscreen TUI Docs & live keyword search (`/` to search)                                                              |
-|   **`[SPACE]`**   | Pause / Resume oscilloscope graph                                                                                           |
+| **`[c]`** | Toggle Adaptive QoS (`ON: Closed-Loop` <-> `OFF: Open-Loop`) |
+| **`[s]`** | Inject High-G hardware shock anomaly + trigger Gemini AI report |
+| **`[g]`** | Synthesize an instant Gemini Edge-AI report for the current hardware & network state |
+| **`[k]`** | Switch Panel 02 between `1:upf0_tc` and `2:ssh` interactive shell |
+| **`[f]`** | Toggle fullscreen terminal modal (`Esc` to exit) |
+| **`[d]` / `[?]`** | Open fullscreen TUI Docs & live keyword search (`/` to search) |
+| **`[SPACE]`** | Pause / Resume oscilloscope graph |
 
 ---
 
@@ -93,47 +93,47 @@ When vibration/anomaly scores cross the safety threshold (or when the operator p
 
 ### Step 1: Clone Repository & Set Up Python Virtual Environment
 
-{F}bash
+```bash
 git clone https://github.com/bytekandy/5g_usecase.git ~/grp21_usecase
 cd ~/grp21_usecase
 
 python3 -m venv venv
 source venv/bin/activate
 pip install fastapi "uvicorn[standard]" websockets psutil python-dotenv
-{F}
+```
 
 ### Step 2: Configure Gemini API Key
 
-{F}bash
+```bash
 cp .env.example .env
 nano .env
-
 # Set: GEMINI_API_KEY=your_actual_gemini_api_key
-
-{F}
+```
 
 ### Step 3: Grant Least-Privilege Passwordless `sudo` for Kernel `tc`
 
 Create `/etc/sudoers.d/mec-tc` so the backend can update `upf0` qdisc rules without running as root:
-{F}bash
+
+```bash
 echo "user ALL=(ALL) NOPASSWD: /usr/sbin/tc, /sbin/tc" | sudo tee /etc/sudoers.d/mec-tc
 sudo chmod 440 /etc/sudoers.d/mec-tc
-{F}
+```
 
 ### Step 4: Initialize Virtual 5G N3 Interface (`upf0`) Manually (for Testing)
 
-{F}bash
+```bash
 sudo modprobe dummy
 sudo modprobe sch_netem
 sudo ip link add upf0 type dummy 2>/dev/null || true
 sudo ip addr add 10.45.0.1/24 dev upf0 2>/dev/null || true
 sudo ip link set upf0 up
-{F}
+```
 
 ### Step 5: Deploy as a Persistent `systemd` Service (`mec-server.service`)
 
 Create `/etc/systemd/system/mec-server.service` so `upf0` and Uvicorn start automatically on every boot:
-{F}ini
+
+```ini
 [Unit]
 Description=5G MEC Real-Time Hardware Telemetry & GenAI Operations Center
 After=network-online.target tailscaled.service
@@ -155,17 +155,17 @@ RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
-{F}
+```
 
 Enable and start the service:
-{F}bash
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now mec-server.service
 sudo systemctl status mec-server.service
-{F}
+```
 
 ### Step 6: Access the Dashboard & Connect the 5G Smartphone UE
-
-- **Operations Dashboard (Browser):** `http://<MEC_SERVER_IP>:8000` (Tailscale: `http://100.73.187.15:8000` | Lab LAN: `http://172.16.0.5:8000`)
+- **Operations Dashboard (Browser):** `http://<MEC_SERVER_IP>:8000` (Tailscale: `[http://100.73.187.15:8000](http://100.73.187.15:8000)` | Lab LAN: `[http://172.16.0.5:8000](http://172.16.0.5:8000)`)
 - **Smartphone 60Hz Hardware Transmitter:** `http://<MEC_SERVER_IP>:8000/phone`
 - _(Optional Remote Access)_ Install [Tailscale](https://tailscale.com/) on the MEC VM, laptop, and smartphone to connect over a direct peer-to-peer WireGuard mesh outside the lab network.
